@@ -1,17 +1,16 @@
 """PN532 NFC/RFID component base for ESPHome.
 
-Exports:
-  - Shared C++ class declarations (PN532, PN532BinarySensor, triggers)
-  - PN532_SCHEMA: base hub config schema extended by pn532_spi / pn532_i2c
-  - setup_pn532_core_(): async helper called by both transport to_code()
+Exports shared C++ class declarations, hub schema, and setup helper.
+binary_sensor platform is in binary_sensor.py (required by ESPHome loader).
 
-The binary sensor platform lives in binary_sensor.py.
-ESPHome resolves `binary_sensor: - platform: pn532` to that file.
+IMPORTANT: Do NOT import esphome.components.binary_sensor here.
+ESPHome's platform loader imports __init__.py first, then resolves
+pn532.binary_sensor as a submodule. An early import of binary_sensor
+here prevents that submodule from loading correctly.
 """
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation, pins
-from esphome.components import binary_sensor
 from esphome.const import (
     CONF_TRIGGER_ID,
     CONF_RST_PIN,
@@ -26,9 +25,7 @@ pn532_ns = cg.esphome_ns.namespace("pn532")
 
 PN532 = pn532_ns.class_("PN532", cg.PollingComponent)
 
-PN532BinarySensor = pn532_ns.class_(
-    "PN532BinarySensor", binary_sensor.BinarySensor
-)
+# PN532Trigger / PN532TagRemovedTrigger used by hub configs
 PN532Trigger = pn532_ns.class_(
     "PN532Trigger", automation.Trigger.template(cg.std_string)
 )
@@ -51,12 +48,10 @@ DEFAULT_UPDATE_INTERVAL = "1s"
 DEFAULT_HEALTH_CHECK_INTERVAL = "60s"
 DEFAULT_MAX_FAILED_CHECKS = 3
 
-# ── Shared hub schema (extended by pn532_spi / pn532_i2c) ────────────────────
+# ── Shared hub schema ─────────────────────────────────────────────────────────
 
 PN532_SCHEMA = cv.Schema(
     {
-        # Optional hardware reset pin — connects to RSTPD_N on the PN532 board
-        # (fixes intermittent IC hardware failure bug, see esphome/#10968)
         cv.Optional(CONF_RST_PIN): pins.gpio_output_pin_schema,
         cv.Optional(CONF_ON_TAG): automation.validate_automation(
             {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(PN532Trigger)}
@@ -72,7 +67,6 @@ PN532_SCHEMA = cv.Schema(
         cv.Optional(
             CONF_MAX_FAILED_CHECKS, default=DEFAULT_MAX_FAILED_CHECKS
         ): cv.int_range(min=1, max=10),
-        # RF field off between polls by default — reduces WiFi interference
         cv.Optional(CONF_RF_FIELD_ENABLED, default=False): cv.boolean,
     }
 ).extend(cv.polling_component_schema(DEFAULT_UPDATE_INTERVAL))
@@ -81,7 +75,7 @@ PN532_SCHEMA = cv.Schema(
 # ── Shared hub code-gen helper ────────────────────────────────────────────────
 
 async def setup_pn532_core_(var, config):
-    """Wire up automation triggers, pins, and health-check settings."""
+    """Wire triggers, pins, and health-check settings for any PN532 hub."""
     if CONF_RST_PIN in config:
         rst = await cg.gpio_pin_expression(config[CONF_RST_PIN])
         cg.add(var.set_rst_pin(rst))

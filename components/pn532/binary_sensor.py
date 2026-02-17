@@ -1,34 +1,49 @@
 """PN532 binary sensor platform for ESPHome.
 
-ESPHome's platform loader resolves `binary_sensor: - platform: pn532` to
-this file. It MUST be named binary_sensor.py, not handled in __init__.py.
+ESPHome resolves `binary_sensor: - platform: pn532` to this file.
+It MUST be named binary_sensor.py (not handled in __init__.py).
 """
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import binary_sensor
 from esphome.const import CONF_ID, CONF_UID
 
-from . import (
-    PN532,
-    PN532BinarySensor,
-    CONF_PN532_ID,
+from . import pn532_ns, PN532, CONF_PN532_ID
+
+DEPENDENCIES = ["pn532"]
+
+# Declare PN532BinarySensor with its proper base class here,
+# where binary_sensor is safely imported without circular dependency risk.
+PN532BinarySensor = pn532_ns.class_(
+    "PN532BinarySensor", binary_sensor.BinarySensor
 )
 
-# pn532_spi and pn532_i2c both AUTO_LOAD pn532, so this dependency is met
-# regardless of which transport the user configured.
-DEPENDENCIES = ["pn532"]
+
+def validate_uid(value):
+    """Accept 'xx-xx-xx-xx' or 'xx:xx:xx:xx' format UIDs."""
+    value = cv.string(value).upper().replace(":", "-")
+    parts = value.split("-")
+    if not parts:
+        raise cv.Invalid("UID must not be empty")
+    for part in parts:
+        if len(part) != 2:
+            raise cv.Invalid(
+                f"UID part '{part}' must be exactly 2 hex digits"
+            )
+        try:
+            int(part, 16)
+        except ValueError as e:
+            raise cv.Invalid(
+                f"UID part '{part}' is not valid hexadecimal"
+            ) from e
+    return value
+
 
 CONFIG_SCHEMA = binary_sensor.binary_sensor_schema(PN532BinarySensor).extend(
     {
         cv.GenerateID(): cv.declare_id(PN532BinarySensor),
-        # Link to the hub (pn532_spi or pn532_i2c instance).
-        # ESPHome's use_id resolves subclasses of PN532 correctly.
         cv.GenerateID(CONF_PN532_ID): cv.use_id(PN532),
-        # Accept "74-10-37-94" (native) or "74:10:37:94" (colon-separated)
-        cv.Required(CONF_UID): cv.All(
-            cv.string,
-            lambda s: s.upper().replace(":", "-"),
-        ),
+        cv.Required(CONF_UID): validate_uid,
     }
 )
 
@@ -42,6 +57,5 @@ async def to_code(config):
 
     uid_str: str = config[CONF_UID]
     # Parse "74-10-37-94" → vector<uint8_t>{0x74, 0x10, 0x37, 0x94}
-    uid_parts = uid_str.split("-")
-    uid_bytes = [cg.uint8(int(p, 16)) for p in uid_parts]
+    uid_bytes = [cg.uint8(int(p, 16)) for p in uid_str.split("-")]
     cg.add(var.set_uid(uid_bytes))

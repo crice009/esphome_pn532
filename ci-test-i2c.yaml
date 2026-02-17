@@ -14,11 +14,13 @@ wifi:
   ssid: "CI_DUMMY_SSID"
   password: "CI_DUMMY_PASSWORD"
 
-# Point to the local component in this repo
 external_components:
   - source:
       type: local
       path: components
+    # Explicitly list all three components so ESPHome overrides the built-in
+    # pn532 package entirely (including binary_sensor.py submodule).
+    components: [pn532, pn532_spi, pn532_i2c]
     refresh: 0s
 
 i2c:
@@ -31,12 +33,10 @@ pn532_i2c:
   id: pn532_board
   address: 0x24
   update_interval: 1s
-  # Health check options
   health_check_enabled: true
   health_check_interval: 60s
   max_failed_checks: 3
   auto_reset_on_failure: true
-  # RF field stays off between polls (reduces I2C timeouts and WiFi interference)
   rf_field_enabled: false
   on_tag:
     then:
