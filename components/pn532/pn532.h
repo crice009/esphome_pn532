@@ -2,12 +2,8 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
+#include "esphome/core/hal.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
-
-#ifdef USE_NFC
-#include "esphome/components/nfc/nfc.h"
-#include "esphome/components/nfc/ndef_message.h"
-#endif
 
 #include <functional>
 #include <string>
@@ -42,11 +38,7 @@ class PN532BinarySensor : public binary_sensor::BinarySensor {
 
 // ─── Triggers ────────────────────────────────────────────────────────────────
 
-#ifdef USE_NFC
-class PN532Trigger : public Trigger<std::string, nfc::NfcTag> {
-#else
 class PN532Trigger : public Trigger<std::string> {
-#endif
  public:
   explicit PN532Trigger(PN532 *parent);
 };
@@ -55,19 +47,6 @@ class PN532TagRemovedTrigger : public Trigger<std::string> {
  public:
   explicit PN532TagRemovedTrigger(PN532 *parent);
 };
-
-// ─── NDEF Write Actions ──────────────────────────────────────────────────────
-
-#ifdef USE_NFC
-class PN532IsWritingCondition : public Condition<> {
- public:
-  explicit PN532IsWritingCondition(PN532 *parent) : parent_(parent) {}
-  bool check() override;
-
- protected:
-  PN532 *parent_;
-};
-#endif
 
 // ─── Main Base Component ─────────────────────────────────────────────────────
 
@@ -80,21 +59,18 @@ class PN532 : public PollingComponent {
   void update() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
 
+  // ── Pin configuration ──
+  void set_rst_pin(GPIOPin *pin) { this->rst_pin_ = pin; }
+
   // ── Sensor registration ──
   void register_tag_sensor(PN532BinarySensor *sensor) {
     this->binary_sensors_.push_back(sensor);
   }
 
   // ── Callbacks ──
-#ifdef USE_NFC
-  void add_on_tag_callback(std::function<void(std::string, nfc::NfcTag)> &&cb) {
-    this->on_tag_callbacks_.add(std::move(cb));
-  }
-#else
   void add_on_tag_callback(std::function<void(std::string)> &&cb) {
     this->on_tag_callbacks_.add(std::move(cb));
   }
-#endif
   void add_on_tag_removed_callback(std::function<void(std::string)> &&cb) {
     this->on_tag_removed_callbacks_.add(std::move(cb));
   }
@@ -106,87 +82,76 @@ class PN532 : public PollingComponent {
   void set_max_failed_checks(uint8_t v) { this->max_failed_checks_ = v; }
 
   // ── RF field management ──
+  // When true: RF field stays on between polls (old native behaviour).
+  // When false (default): RF off between polls — reduces WiFi interference.
   void set_rf_field_enabled(bool v) { this->rf_field_off_when_idle_ = !v; }
 
-  // ── NDEF write mode ──
-#ifdef USE_NFC
-  void write_mode(nfc::NdefMessage *message) {
-    this->next_write_message_ = message;
-    this->updates_enabled_ = false;
-  }
-  bool is_writing() { return !this->updates_enabled_; }
-#endif
-
-  // ── Called by transport subclasses ──
-  void enable_updates() { this->updates_enabled_ = true; }
-
  protected:
-  // ── Abstract transport interface ──
+  // ── Abstract transport interface (implemented by SPI/I2C subclasses) ──
   virtual bool write_data(const std::vector<uint8_t> &data) = 0;
   virtual bool read_data(std::vector<uint8_t> &data, uint8_t len) = 0;
   virtual bool read_response(uint8_t command, std::vector<uint8_t> &data) = 0;
+  // Returns true when the PN532 has a response ready to read.
+  // Default returns true (polling / SPI status register check is optional).
   virtual bool is_read_ready() { return true; }
+  // Called once during setup() before the base init sequence.
+  // Transport subclasses use this for their own bus setup (e.g. spi_setup()).
+  virtual void pn532_pre_setup_() {}
 
   // ── Protocol helpers ──
   bool write_command_(const std::vector<uint8_t> &data);
   bool read_ack_();
   bool send_ack_();
 
-  // ── Tag detection pipeline ──
+  // ── Tag detection ──
   void process_tag_(const std::vector<uint8_t> &uid);
   void tag_removed_();
   bool read_tag_(std::vector<uint8_t> &uid);
 
-  // ── RF field control ──
+  // ── RF field ──
   void turn_off_rf_();
 
-  // ── Initialization helpers ──
+  // ── Init helpers ──
+  bool init_pn532_();
   bool setup_sam_();
   bool get_firmware_version_();
-  virtual void pn532_setup_() {}  // subclass can add transport-specific init
+
+  // ── Hardware reset via RSTPD_N pin (fix for #10968) ──
+  void hardware_reset_();
 
   // ── Health check ──
   bool perform_health_check_();
 
-  // ── State ──
-  bool updates_enabled_{true};
-  bool requested_read_{false};
+  // ── Hardware ──
+  GPIOPin *rst_pin_{nullptr};
 
-  // RF field management
-  bool rf_field_off_when_idle_{true};  // default: RF off between polls (reduces WiFi interference)
+  // ── RF field state ──
+  // true = turn off between polls (default, reduces WiFi interference)
+  bool rf_field_off_when_idle_{true};
 
-  // Tag state
+  // ── Tag state ──
   std::vector<uint8_t> current_uid_{};
   bool tag_present_{false};
 
-  // Binary sensors for known tags
+  // ── Binary sensors ──
   std::vector<PN532BinarySensor *> binary_sensors_;
 
-  // Error / throttle tracking (bug fix: prevent tight failure loops)
+  // ── Backoff state (fix for blocking-operation warnings) ──
   uint8_t retries_{0};
-  uint32_t last_update_{0};
-  uint32_t throttle_{0};
+  uint32_t last_update_ms_{0};
+  uint32_t throttle_ms_{0};
 
-  // Health check
+  // ── Health check state ──
   bool health_check_enabled_{true};
   uint32_t health_check_interval_{60000};
-  uint32_t last_health_check_{0};
+  uint32_t last_health_check_ms_{0};
   uint8_t consecutive_failures_{0};
   uint8_t max_failed_checks_{3};
   bool auto_reset_on_failure_{true};
   bool is_healthy_{true};
 
-  // NDEF write support
-#ifdef USE_NFC
-  nfc::NdefMessage *next_write_message_{nullptr};
-#endif
-
-  // Callbacks
-#ifdef USE_NFC
-  CallbackManager<void(std::string, nfc::NfcTag)> on_tag_callbacks_;
-#else
+  // ── Callbacks ──
   CallbackManager<void(std::string)> on_tag_callbacks_;
-#endif
   CallbackManager<void(std::string)> on_tag_removed_callbacks_;
 };
 

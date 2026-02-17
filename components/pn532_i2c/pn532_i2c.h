@@ -6,7 +6,7 @@
 namespace esphome {
 namespace pn532_i2c {
 
-static const uint8_t PN532_I2C_ADDRESS = 0x24;
+static const uint8_t PN532_I2C_DEFAULT_ADDRESS = 0x24;
 
 class PN532I2C : public pn532::PN532, public i2c::I2CDevice {
  public:
@@ -14,7 +14,6 @@ class PN532I2C : public pn532::PN532, public i2c::I2CDevice {
   void dump_config() override;
 
  protected:
-  // ── Transport interface ──
   bool write_data(const std::vector<uint8_t> &data) override;
   bool read_data(std::vector<uint8_t> &data, uint8_t len) override;
   bool read_response(uint8_t command, std::vector<uint8_t> &data) override;
