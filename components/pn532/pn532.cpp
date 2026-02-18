@@ -50,13 +50,8 @@ bool PN532BinarySensor::process(const std::vector<uint8_t> &uid) {
 
 // ─── Hardware reset ───────────────────────────────────────────────────────────
 
-void PN532::hardware_reset_() {
-  if (this->rst_pin_ == nullptr)
     return;
-  ESP_LOGD(TAG, "Hardware reset via RSTPD_N pin");
-  this->rst_pin_->digital_write(false);
   delay(100);
-  this->rst_pin_->digital_write(true);
   delay(10);
 }
 
@@ -93,7 +88,6 @@ void PN532::setup() {
   this->pn532_pre_setup_();
 
   // Optional hardware reset before init (fix for #10968 — IC hardware bug)
-  this->hardware_reset_();
 
   if (!this->init_pn532_()) {
     this->mark_failed();
@@ -110,9 +104,6 @@ void PN532::setup() {
   }
 
   // Set up rst_pin as output if provided
-  if (this->rst_pin_ != nullptr) {
-    this->rst_pin_->setup();
-    this->rst_pin_->digital_write(true);
   }
 
   ESP_LOGCONFIG(TAG, "PN532 setup complete");
@@ -122,7 +113,6 @@ void PN532::setup() {
 
 void PN532::dump_config() {
   ESP_LOGCONFIG(TAG, "PN532:");
-  LOG_PIN("  RST Pin: ", this->rst_pin_);
   LOG_UPDATE_INTERVAL(this);
   ESP_LOGCONFIG(TAG, "  Registered binary sensors: %d", this->binary_sensors_.size());
   ESP_LOGCONFIG(TAG, "  RF field off when idle: %s", this->rf_field_off_when_idle_ ? "yes" : "no");
@@ -160,7 +150,6 @@ void PN532::loop() {
 
       if (this->auto_reset_on_failure_) {
         ESP_LOGW(TAG, "Attempting automatic reset...");
-        this->hardware_reset_();
         delay(50);
         if (this->init_pn532_()) {
           if (this->rf_field_off_when_idle_)

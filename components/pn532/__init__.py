@@ -10,11 +10,8 @@ here prevents that submodule from loading correctly.
 """
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome import automation, pins
-from esphome.const import (
-    CONF_TRIGGER_ID,
-    CONF_RST_PIN,
-)
+from esphome import automation
+from esphome.const import CONF_TRIGGER_ID
 
 CODEOWNERS = ["@your-github-handle"]
 AUTO_LOAD = ["binary_sensor"]
@@ -25,7 +22,6 @@ pn532_ns = cg.esphome_ns.namespace("pn532")
 
 PN532 = pn532_ns.class_("PN532", cg.PollingComponent)
 
-# PN532Trigger / PN532TagRemovedTrigger used by hub configs
 PN532Trigger = pn532_ns.class_(
     "PN532Trigger", automation.Trigger.template(cg.std_string)
 )
@@ -52,7 +48,6 @@ DEFAULT_MAX_FAILED_CHECKS = 3
 
 PN532_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_RST_PIN): pins.gpio_output_pin_schema,
         cv.Optional(CONF_ON_TAG): automation.validate_automation(
             {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(PN532Trigger)}
         ),
@@ -75,11 +70,7 @@ PN532_SCHEMA = cv.Schema(
 # ── Shared hub code-gen helper ────────────────────────────────────────────────
 
 async def setup_pn532_core_(var, config):
-    """Wire triggers, pins, and health-check settings for any PN532 hub."""
-    if CONF_RST_PIN in config:
-        rst = await cg.gpio_pin_expression(config[CONF_RST_PIN])
-        cg.add(var.set_rst_pin(rst))
-
+    """Wire triggers and health-check settings for any PN532 hub."""
     cg.add(var.set_health_check_enabled(config[CONF_HEALTH_CHECK_ENABLED]))
     cg.add(var.set_health_check_interval(config[CONF_HEALTH_CHECK_INTERVAL]))
     cg.add(var.set_auto_reset_on_failure(config[CONF_AUTO_RESET_ON_FAILURE]))
