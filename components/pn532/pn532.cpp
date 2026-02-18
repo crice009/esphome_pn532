@@ -48,18 +48,10 @@ bool PN532BinarySensor::process(const std::vector<uint8_t> &uid) {
   return true;
 }
 
-// ─── Hardware reset ───────────────────────────────────────────────────────────
-
-    return;
-  delay(100);
-  delay(10);
-}
-
 // ─── Init sequence ────────────────────────────────────────────────────────────
 
 bool PN532::init_pn532_() {
-  // Retry firmware version check up to 3 times (fix for esphome/#3823 — single
-  // failure at boot caused mark_failed() even on perfectly good hardware)
+  // Retry firmware version check up to 3 times (fix for esphome/#3823)
   for (int attempt = 0; attempt < 3; attempt++) {
     if (this->get_firmware_version_())
       break;
@@ -87,8 +79,6 @@ void PN532::setup() {
   // Transport-specific pre-setup (e.g. spi_setup())
   this->pn532_pre_setup_();
 
-  // Optional hardware reset before init (fix for #10968 — IC hardware bug)
-
   if (!this->init_pn532_()) {
     this->mark_failed();
     return;
@@ -101,9 +91,6 @@ void PN532::setup() {
 
   if (this->health_check_enabled_) {
     this->last_health_check_ms_ = millis();
-  }
-
-  // Set up rst_pin as output if provided
   }
 
   ESP_LOGCONFIG(TAG, "PN532 setup complete");
@@ -185,7 +172,7 @@ void PN532::update() {
     return;
   }
 
-  // Throttled backoff after bus failures (fix for "took a long time" warnings)
+  // Throttled backoff after bus failures
   if (this->throttle_ms_ > 0) {
     if (millis() - this->last_update_ms_ < this->throttle_ms_)
       return;
@@ -231,10 +218,7 @@ void PN532::update() {
 // ─── Tag processing ───────────────────────────────────────────────────────────
 
 void PN532::process_tag_(const std::vector<uint8_t> &uid) {
-  // BUG FIX for #9875:
-  // Native code called turn_off_rf_() on same-UID re-read, causing the tag to
-  // appear removed and then re-detected on the next poll (flapping).
-  // Fix: silently refresh binary sensor state when same tag is still present.
+  // BUG FIX for #9875: silently refresh when same tag still present
   if (uid == this->current_uid_ && this->tag_present_) {
     for (auto *sensor : this->binary_sensors_)
       sensor->process(uid);
@@ -286,12 +270,12 @@ void PN532::tag_removed_() {
 // ─── Read tag UID ─────────────────────────────────────────────────────────────
 
 bool PN532::read_tag_(std::vector<uint8_t> &uid) {
-  // Wait for PN532 to signal readiness (with 1s wall-clock timeout)
+  // Wait for PN532 readiness (with 1s wall-clock timeout)
   uint32_t start = millis();
   while (!this->is_read_ready()) {
     if (millis() - start > 1000) {
       ESP_LOGV(TAG, "Timed out waiting for readiness from PN532!");
-      this->send_ack_();  // Abort any pending command
+      this->send_ack_();
       return false;
     }
     yield();
@@ -303,7 +287,7 @@ bool PN532::read_tag_(std::vector<uint8_t> &uid) {
 
   // Response: [num_targets, target#, ATQA(2), SAK(1), nfcid_len, nfcid...]
   if (response.empty() || response[0] == 0x00)
-    return false;  // No target
+    return false;
 
   if (response.size() < 6) {
     ESP_LOGW(TAG, "Malformed InListPassiveTarget response (%d bytes)", response.size());
@@ -330,7 +314,7 @@ void PN532::turn_off_rf_() {
 // ─── SAM configuration ───────────────────────────────────────────────────────
 
 bool PN532::setup_sam_() {
-  // Normal mode (0x01), timeout 0x14 (1000ms/50=20 × 50ms), use IRQ=1
+  // Normal mode (0x01), timeout 0x14, use IRQ=1
   if (!this->write_command_({PN532_CMD_SAMCONFIGURATION, 0x01, 0x14, 0x01})) {
     ESP_LOGE(TAG, "SAMConfiguration write failed");
     return false;
@@ -367,7 +351,7 @@ bool PN532::get_firmware_version_() {
 // ─── Write command frame ──────────────────────────────────────────────────────
 
 bool PN532::write_command_(const std::vector<uint8_t> &data) {
-  uint8_t len = (uint8_t)(data.size() + 1);  // +1 for TFI byte
+  uint8_t len = (uint8_t)(data.size() + 1);
   uint8_t lcs = (~len + 1) & 0xFF;
 
   uint8_t sum = PN532_HOSTTOPN532;
