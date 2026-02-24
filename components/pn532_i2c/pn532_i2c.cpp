@@ -26,19 +26,12 @@ void PN532I2C::dump_config() {
 }
 
 // ─── is_read_ready ───────────────────────────────────────────────────────────
-//
-// Fix for esphome/issues#4382:
-// The native implementation busy-waited in a while(true) loop until the PN532
-// returned 0x01, blocking the main loop for up to 100ms on every poll.
-// This implementation does a single non-blocking check — the outer loop in the
-// base class has its own 1-second wall-clock timeout.
 
 bool PN532I2C::is_read_ready() {
   uint8_t ready_byte = 0;
-  // Single-byte read; if the bus times out, i2c ERROR_OK won't be set.
-  auto err = this->read_register(0, &ready_byte, 1, false);
-  if (err != i2c::ERROR_OK)
+  if (!this->read_bytes_raw(&ready_byte, 1)) {
     return false;
+  }
   return (ready_byte == PN532_I2C_READY);
 }
 
