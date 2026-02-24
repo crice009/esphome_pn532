@@ -6,10 +6,7 @@ namespace pn532_i2c {
 
 static const char *const TAG = "pn532_i2c";
 
-// The PN532 prepends a 1-byte ready indicator to every I2C read
 static const uint8_t PN532_I2C_READY = 0x01;
-
-// ─── setup / dump_config ─────────────────────────────────────────────────────
 
 void PN532I2C::setup() {
   ESP_LOGCONFIG(TAG, "Setting up PN532 (I2C)...");
@@ -25,17 +22,17 @@ void PN532I2C::dump_config() {
   }
 }
 
-// ─── is_read_ready ───────────────────────────────────────────────────────────
-
+// Single non-blocking READY check — fix for esphome/issues#4382
+// Uses read_bytes_raw (no register byte injected) as the PN532 I2C
+// protocol is a raw stream, not a register-addressed memory map.
 bool PN532I2C::is_read_ready() {
   uint8_t ready_byte = 0;
   if (!this->read_bytes_raw(&ready_byte, 1)) {
+    ESP_LOGV(TAG, "I2C: read_bytes_raw failed while checking READY");
     return false;
   }
   return (ready_byte == PN532_I2C_READY);
 }
-
-// ─── write_data ──────────────────────────────────────────────────────────────
 
 bool PN532I2C::write_data(const std::vector<uint8_t> &data) {
   auto err = this->write(data.data(), data.size());
@@ -46,31 +43,22 @@ bool PN532I2C::write_data(const std::vector<uint8_t> &data) {
   return true;
 }
 
-// ─── read_data ───────────────────────────────────────────────────────────────
-
 bool PN532I2C::read_data(std::vector<uint8_t> &data, uint8_t len) {
-  // PN532 I2C prepends a 1-byte ready indicator — read len+1 and discard first
   std::vector<uint8_t> buf(len + 1);
   auto err = this->read(buf.data(), len + 1);
   if (err != i2c::ERROR_OK) {
     ESP_LOGW(TAG, "I2C read error: %d", err);
     return false;
   }
-  // First byte is the ready indicator; actual data starts at index 1
   data.assign(buf.begin() + 1, buf.end());
   return true;
 }
 
-// ─── read_response ───────────────────────────────────────────────────────────
-
 bool PN532I2C::read_response(uint8_t command, std::vector<uint8_t> &data) {
-  // I2C frame header: [ready(1)] [0x00][0x00][0xFF][LEN][LCS][0xD5][CMD+1]
-  // We call read_data which strips the ready byte, so we get 7 bytes.
   std::vector<uint8_t> header;
   if (!this->read_data(header, 7))
     return false;
 
-  // Validate preamble
   if (header[0] != 0x00 || header[1] != 0x00 || header[2] != 0xFF) {
     ESP_LOGW(TAG, "I2C: Bad preamble: %02X %02X %02X", header[0], header[1], header[2]);
     return false;
@@ -101,7 +89,6 @@ bool PN532I2C::read_response(uint8_t command, std::vector<uint8_t> &data) {
   if (!this->read_data(raw, payload_len + 2))
     return false;
 
-  // Verify DCS
   uint8_t checksum = 0xD5 + (command + 1);
   for (uint8_t i = 0; i < payload_len; i++)
     checksum += raw[i];
