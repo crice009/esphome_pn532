@@ -34,7 +34,7 @@ Add to your ESPHome YAML:
 external_components:
   - source:
       type: git
-      url: https://github.com/YOUR_USERNAME/esphome-pn532
+      url: https://github.com/johnmclear/esphome-pn532
     components: [pn532, pn532_spi, pn532_i2c]
     refresh: 1d
 ```
