@@ -32,7 +32,7 @@ Add to your ESPHome YAML:
 
 ```yaml
 external_components:
-  - source: github://JohnMcLear/esphome-pn532
+  - source: github://JohnMcLear/esphome_pn532
     components: [pn532, pn532_spi, pn532_i2c]
     refresh: 1d
 ```
