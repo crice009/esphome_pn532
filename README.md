@@ -13,7 +13,7 @@ An enhanced external ESPHome component for the PN532 NFC/RFID reader. Drop-in co
 | **Flapping tag detection** (#9875) — card on reader causes alternating `on_tag`/`on_tag_removed` | Same UID detected → stay present without triggering RF cycle |
 | **I2C freeze after hours** (#3281, #4745) — device stops responding, requires power cycle | Health check with configurable auto-reset |
 | **Blocking operation warning** — `Component pn532 took a long time` floods logs | Exponential backoff throttle after bus failures |
-| **Setup retry** — single firmware version check failure marks component failed | 3-attempt retry on `GetFirmwareVersion` at boot |
+| **Setup retry** — single firmware version check failure marks component failed | 2-attempt retry on `GetFirmwareVersion` at boot |
 | **WiFi interference** — PN532 RF field causes WiFi disconnects on nearby ESPs | RF field disabled between polls by default |
 
 ### New Features
