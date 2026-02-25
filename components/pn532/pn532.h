@@ -54,7 +54,9 @@ class PN532 : public PollingComponent {
   void format_mode();
   void write_mode(nfc::NdefMessage *message);
   bool powerdown();
-
+  void set_max_failed_checks(uint8_t n) { this->max_failed_checks_ = n; }
+  void set_auto_reset(bool v) { this->auto_reset_ = v; }
+  
  protected:
   void turn_off_rf_();
   bool write_command_(const std::vector<uint8_t> &data);
@@ -64,7 +66,9 @@ class PN532 : public PollingComponent {
   bool reinit_();
   bool sam_configured_{false};
   uint8_t consecutive_failures_{0};
-
+  uint8_t max_failed_checks_{3};
+  bool auto_reset_{true};
+  
   enum PN532ReadReady read_ready_(bool block);
   virtual bool is_read_ready() = 0;
   virtual bool write_data(const std::vector<uint8_t> &data) = 0;

@@ -110,7 +110,6 @@ void PN532::update() {
   for (auto *obj : this->binary_sensors_)
     obj->on_scan_end();
 
-  // Gate all scanning on SAM being configured — if not, try reinit every cycle
   if (!this->sam_configured_) {
     if (this->reinit_()) {
       this->status_clear_warning();
@@ -125,19 +124,25 @@ void PN532::update() {
           0x01,  // max 1 card
           0x00,  // baud rate ISO14443A (106 kbit/s)
       })) {
+    // ── failure path ──────────────────────────────────────────────────
     ESP_LOGW(TAG, "Requesting tag read failed!");
     this->status_set_warning();
-    if (++this->consecutive_failures_ >= 3) {
+    if (++this->consecutive_failures_ >= this->max_failed_checks_) {
       ESP_LOGW(TAG, "PN532 unresponsive, scheduling re-init...");
       this->consecutive_failures_ = 0;
-      this->sam_configured_ = false;  // triggers reinit on next update()
+      if (this->auto_reset_) {
+        this->sam_configured_ = false;
+      }
     }
     return;
   }
+
+  // ── success path ──────────────────────────────────────────────────
   this->status_clear_warning();
   this->consecutive_failures_ = 0;
   this->requested_read_ = true;
 }
+
 
 
 
