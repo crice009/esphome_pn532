@@ -31,6 +31,7 @@ class PN532BinarySensor;
 class PN532 : public PollingComponent {
  public:
   void setup() override;
+  void set_rf_field_enabled(bool enabled) { this->rf_field_enabled_ = enabled; }
 
   void dump_config() override;
 
@@ -71,6 +72,7 @@ class PN532 : public PollingComponent {
   uint8_t consecutive_failures_{0};
   uint8_t max_failed_checks_{3};
   bool auto_reset_{true};
+  bool rf_field_enabled_{false};
   
   enum PN532ReadReady read_ready_(bool block);
   virtual bool is_read_ready() = 0;

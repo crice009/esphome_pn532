@@ -193,7 +193,8 @@ void PN532::loop() {
         trigger->process(tag);
     }
     this->current_uid_ = {};
-    this->turn_off_rf_();
+    if (!this->rf_field_enabled_)
+      this->turn_off_rf_();
     return;
   }
 
@@ -206,7 +207,8 @@ void PN532::loop() {
         trigger->process(tag);
     }
     this->current_uid_ = {};
-    this->turn_off_rf_();
+    if (!this->rf_field_enabled_)
+      this->turn_off_rf_();
     return;
   }
 
@@ -283,8 +285,8 @@ void PN532::loop() {
   }
 
   this->read_mode();
-
-  this->turn_off_rf_();
+  if (!this->rf_field_enabled_)
+    this->turn_off_rf_();
 }
 
 bool PN532::write_command_(const std::vector<uint8_t> &data) {
@@ -508,8 +510,8 @@ bool PN532::reinit_() {
     ESP_LOGW(TAG, "Re-init: SAM config response failed");
     return false;
   }
-
-  this->turn_off_rf_();
+  if (!this->rf_field_enabled_)
+    this->turn_off_rf_();
   this->sam_configured_ = true;
   ESP_LOGI(TAG, "PN532 re-initialised successfully!");
   return true;

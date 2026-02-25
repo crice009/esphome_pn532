@@ -74,7 +74,7 @@ async def setup_pn532(var, config):
 
     cg.add(var.set_max_failed_checks(config[CONF_MAX_FAILED_CHECKS]))
     cg.add(var.set_auto_reset(config[CONF_AUTO_RESET_ON_FAILURE]))
-
+    cg.add(var.set_rf_field_enabled(config[CONF_RF_FIELD_ENABLED]))
     for conf in config.get(CONF_ON_TAG, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])
         cg.add(var.register_ontag_trigger(trigger))
