@@ -77,6 +77,7 @@ void PN532::setup() {
     this->mark_failed();
     return;
   }
+  this->user_update_interval_ = this->update_interval_;
   this->sam_configured_ = true;
   this->turn_off_rf_();
 }
@@ -113,6 +114,14 @@ void PN532::update() {
   if (!this->sam_configured_) {
     if (this->reinit_()) {
       this->status_clear_warning();
+      this->consecutive_failures_ = 0;
+      // Restore normal update interval if we were in backoff
+      if (this->backoff_ms_ != 0) {
+        this->backoff_ms_ = 0;
+        this->set_update_interval(this->user_update_interval_);
+        ESP_LOGI(TAG, "PN532 recovered, resuming normal %dms scan interval", this->user_update_interval_);
+      }
+      this->requested_read_ = true;
     } else {
       this->status_set_warning();
     }
@@ -127,6 +136,15 @@ void PN532::update() {
     // ── failure path ──────────────────────────────────────────────────
     ESP_LOGW(TAG, "Requesting tag read failed!");
     this->status_set_warning();
+    // Exponential backoff: 2s → 4s → 8s → ... → 60s max
+    uint32_t new_backoff = (this->backoff_ms_ == 0)
+        ? this->user_update_interval_ * 2
+        : std::min(this->backoff_ms_ * 2, (uint32_t) 60000);
+    if (new_backoff != this->backoff_ms_) {
+      this->backoff_ms_ = new_backoff;
+      this->set_update_interval(this->backoff_ms_);
+      ESP_LOGW(TAG, "Backing off to %dms retry interval", this->backoff_ms_);
+    }
     if (++this->consecutive_failures_ >= this->max_failed_checks_) {
       ESP_LOGW(TAG, "PN532 unresponsive, scheduling re-init...");
       this->consecutive_failures_ = 0;
@@ -134,6 +152,7 @@ void PN532::update() {
         this->sam_configured_ = false;
       }
     }
+    return;
     return;
   }
 

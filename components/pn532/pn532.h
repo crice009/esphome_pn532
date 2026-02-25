@@ -56,6 +56,9 @@ class PN532 : public PollingComponent {
   bool powerdown();
   void set_max_failed_checks(uint8_t n) { this->max_failed_checks_ = n; }
   void set_auto_reset(bool v) { this->auto_reset_ = v; }
+  void set_user_update_interval(uint32_t ms) { this->user_update_interval_ = ms; }
+  uint32_t user_update_interval_{1000};
+  uint32_t backoff_ms_{0};
   
  protected:
   void turn_off_rf_();
