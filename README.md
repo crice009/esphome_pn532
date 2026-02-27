@@ -195,3 +195,10 @@ This resolves the known long-running freeze issue on I2C (#3281).
 - ESP32 (Arduino & ESP-IDF frameworks)
 - ESP8266 (Arduino framework)
 - PN532 modules over SPI or I2C (4-wire or 2-wire mode)
+
+---
+
+## TODO
+
+- [ ] **Hardware Validation:** Test all enhanced logic (health checks, backoff, RF field control) against physical PN532 hardware over both I2C and SPI to verify real-world stability and performance improvements.
+
