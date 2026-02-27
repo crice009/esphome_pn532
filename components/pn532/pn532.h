@@ -14,6 +14,14 @@
 namespace esphome {
 namespace pn532 {
 
+// Newer ESPHome versions define NfcTagUid.
+// Older versions (and some local environments) use std::vector<uint8_t>.
+#ifdef NFC_UID_MAX_LENGTH
+using NfcTagUid = nfc::NfcTagUid;
+#else
+using NfcTagUid = std::vector<uint8_t>;
+#endif
+
 static const uint8_t PN532_COMMAND_VERSION_DATA = 0x02;
 static const uint8_t PN532_COMMAND_SAMCONFIGURATION = 0x14;
 static const uint8_t PN532_COMMAND_RFCONFIGURATION = 0x32;
