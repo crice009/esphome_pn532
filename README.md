@@ -117,6 +117,7 @@ binary_sensor:
 All the same options as SPI above, plus:
 
 - **`address`** (*Optional*, default `0x24`): I2C address of the PN532.
+- **`rf_field_enabled`** (*Optional*, default `false`): Keep the RF field on between polls.
 - **`i2c_id`** (*Optional*): Manually specify the I2C bus ID.
 
 ---
