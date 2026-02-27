@@ -57,6 +57,8 @@ class PN532 : public PollingComponent {
   bool powerdown();
   void set_max_failed_checks(uint8_t n) { this->max_failed_checks_ = n; }
   void set_auto_reset(bool v) { this->auto_reset_ = v; }
+  void set_health_check_enabled(bool v) { this->health_check_enabled_ = v; }
+  void set_health_check_interval(uint32_t ms) { this->health_check_interval_ = ms; }
   void set_user_update_interval(uint32_t ms) { this->user_update_interval_ = ms; }
   uint32_t user_update_interval_{1000};
   uint32_t backoff_ms_{0};
@@ -73,6 +75,9 @@ class PN532 : public PollingComponent {
   uint8_t max_failed_checks_{3};
   bool auto_reset_{true};
   bool rf_field_enabled_{false};
+  bool health_check_enabled_{true};
+  uint32_t health_check_interval_{60000};
+  uint32_t last_health_check_{0};
   
   enum PN532ReadReady read_ready_(bool block);
   virtual bool is_read_ready() = 0;

@@ -128,6 +128,40 @@ void PN532::update() {
     return;
   }
 
+  // Health check
+  if (this->health_check_enabled_) {
+    uint32_t now = millis();
+    if (now - this->last_health_check_ >= this->health_check_interval_) {
+      this->last_health_check_ = now;
+      ESP_LOGV(TAG, "Running periodic health check...");
+      if (!this->write_command_({PN532_COMMAND_VERSION_DATA})) {
+        ESP_LOGW(TAG, "Health check failed (write command)");
+        if (++this->consecutive_failures_ >= this->max_failed_checks_) {
+          ESP_LOGW(TAG, "PN532 unresponsive after %d failures, scheduling re-init...", this->consecutive_failures_);
+          this->consecutive_failures_ = 0;
+          if (this->auto_reset_) {
+            this->sam_configured_ = false;
+          }
+        }
+        return;
+      }
+      std::vector<uint8_t> version_data;
+      if (!this->read_response(PN532_COMMAND_VERSION_DATA, version_data)) {
+        ESP_LOGW(TAG, "Health check failed (read response)");
+        if (++this->consecutive_failures_ >= this->max_failed_checks_) {
+          ESP_LOGW(TAG, "PN532 unresponsive after %d failures, scheduling re-init...", this->consecutive_failures_);
+          this->consecutive_failures_ = 0;
+          if (this->auto_reset_) {
+            this->sam_configured_ = false;
+          }
+        }
+        return;
+      }
+      ESP_LOGV(TAG, "Health check passed");
+      this->consecutive_failures_ = 0; // Reset consecutive failures on success
+    }
+  }
+
   if (!this->write_command_({
           PN532_COMMAND_INLISTPASSIVETARGET,
           0x01,  // max 1 card
@@ -532,6 +566,13 @@ void PN532::dump_config() {
   }
 
   LOG_UPDATE_INTERVAL(this);
+  ESP_LOGCONFIG(TAG, "  Health check enabled: %s", YESNO(this->health_check_enabled_));
+  if (this->health_check_enabled_) {
+    ESP_LOGCONFIG(TAG, "  Health check interval: %dms", this->health_check_interval_);
+  }
+  ESP_LOGCONFIG(TAG, "  Max failed checks: %d", this->max_failed_checks_);
+  ESP_LOGCONFIG(TAG, "  Auto-reset on failure: %s", YESNO(this->auto_reset_));
+  ESP_LOGCONFIG(TAG, "  RF field enabled: %s", YESNO(this->rf_field_enabled_));
 
   for (auto *child : this->binary_sensors_) {
     LOG_BINARY_SENSOR("  ", "Tag", child);
