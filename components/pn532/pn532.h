@@ -6,6 +6,7 @@
 
 #include <cinttypes>
 #include <vector>
+#include <type_traits>
 
 #include "esphome/components/nfc/nfc_tag.h"
 #include "esphome/components/nfc/nfc.h"
@@ -14,13 +15,22 @@
 namespace esphome {
 namespace pn532 {
 
-// Newer ESPHome versions define NfcTagUid.
-// Older versions (and some local environments) use std::vector<uint8_t>.
-#ifdef NFC_UID_MAX_LENGTH
-using NfcTagUid = nfc::NfcTagUid;
-#else
-using NfcTagUid = std::vector<uint8_t>;
-#endif
+/**
+ * Robustly identify the UID type used by the NFC component.
+ * Newer versions use StaticVector, older ones use std::vector.
+ */
+template<typename T>
+struct nfc_uid_type_extractor {
+  using type = std::vector<uint8_t>;
+};
+
+template<>
+struct nfc_uid_type_extractor<nfc::NfcTag> {
+  // Try to extract type from NfcTag::get_uid() return type
+  using type = typename std::remove_cv<typename std::remove_reference<decltype(std::declval<nfc::NfcTag>().get_uid())>::type>::type;
+};
+
+using NfcTagUid = typename nfc_uid_type_extractor<nfc::NfcTag>::type;
 
 static const uint8_t PN532_COMMAND_VERSION_DATA = 0x02;
 static const uint8_t PN532_COMMAND_SAMCONFIGURATION = 0x14;

@@ -280,7 +280,9 @@ void PN532::loop() {
       trigger->process(tag);
 
     if (report) {
-      ESP_LOGD(TAG, "Found new tag '%s'", nfc::format_uid(nfcid).c_str());
+      NfcTagUid nfc_uid;
+      nfc_uid.assign(nfcid.begin(), nfcid.end());
+      ESP_LOGD(TAG, "Found new tag '%s'", nfc::format_uid(nfc_uid).c_str());
       if (tag->has_ndef_message()) {
         const auto &message = tag->get_ndef_message();
         const auto &records = message->get_records();
