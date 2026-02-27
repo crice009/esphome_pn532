@@ -198,9 +198,22 @@ This resolves the known long-running freeze issue on I2C (#3281).
 
 ---
 
+## Supported Card Types
+
+This component currently supports **ISO14443A** cards (106 kbit/s), which includes:
+- Mifare Classic (1k, 4k)
+- Mifare Ultralight / Ultralight C
+- NTAG series (203, 213, 215, 216)
+
+Support for ISO14443B, FeliCa, and Jewel cards is physically possible with the PN532 but is not yet implemented in this component's polling logic.
+
+---
+
 ## TODO
 
-- [ ] **Hardware Validation:** Test all enhanced logic (health checks, backoff, RF field control) against physical PN532 hardware over both I2C and SPI to verify real-world stability and performance improvements.
+- [ ] **Hardware Validation:** Test all enhanced logic (health checks, backoff, RF field control) against physical PN532 hardware over both I2C and SPI.
 - [ ] **Mifare Compatibility:** Specifically verify reading and writing logic with physical Mifare Classic and Ultralight cards.
+- [ ] **Multi-Type Polling:** Extend `InListPassiveTarget` logic to optionally poll for ISO14443B and FeliCa tags.
+
 
 
