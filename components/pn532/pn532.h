@@ -12,14 +12,6 @@
 #include "esphome/components/nfc/automation.h"
 
 namespace esphome {
-namespace nfc {
-// If nfc_tag.h didn't define NfcTagUid (older ESPHome versions), define it here.
-// Newer versions use StaticVector for NfcTagUid and define NFC_UID_MAX_LENGTH.
-#ifndef NFC_UID_MAX_LENGTH
-using NfcTagUid = std::vector<uint8_t>;
-#endif
-}
-
 namespace pn532 {
 
 static const uint8_t PN532_COMMAND_VERSION_DATA = 0x02;
@@ -35,7 +27,23 @@ enum PN532ReadReady {
   READY,
 };
 
-class PN532BinarySensor;
+class PN532BinarySensor : public binary_sensor::BinarySensor {
+ public:
+  void set_uid(const std::vector<uint8_t> &uid) { uid_ = uid; }
+
+  bool process(const std::vector<uint8_t> &data);
+
+  void on_scan_end() {
+    if (!this->found_) {
+      this->publish_state(false);
+    }
+    this->found_ = false;
+  }
+
+ protected:
+  std::vector<uint8_t> uid_;
+  bool found_{false};
+};
 
 class PN532 : public PollingComponent {
  public:
@@ -94,28 +102,28 @@ class PN532 : public PollingComponent {
   virtual bool read_data(std::vector<uint8_t> &data, uint8_t len) = 0;
   virtual bool read_response(uint8_t command, std::vector<uint8_t> &data) = 0;
 
-  std::unique_ptr<nfc::NfcTag> read_tag_(nfc::NfcTagUid &uid);
+  std::unique_ptr<nfc::NfcTag> read_tag_(std::vector<uint8_t> &uid);
 
-  bool format_tag_(nfc::NfcTagUid &uid);
-  bool clean_tag_(nfc::NfcTagUid &uid);
-  bool write_tag_(nfc::NfcTagUid &uid, nfc::NdefMessage *message);
+  bool format_tag_(std::vector<uint8_t> &uid);
+  bool clean_tag_(std::vector<uint8_t> &uid);
+  bool write_tag_(std::vector<uint8_t> &uid, nfc::NdefMessage *message);
 
-  std::unique_ptr<nfc::NfcTag> read_mifare_classic_tag_(nfc::NfcTagUid &uid);
+  std::unique_ptr<nfc::NfcTag> read_mifare_classic_tag_(std::vector<uint8_t> &uid);
   bool read_mifare_classic_block_(uint8_t block_num, std::vector<uint8_t> &data);
   bool write_mifare_classic_block_(uint8_t block_num, std::vector<uint8_t> &data);
-  bool auth_mifare_classic_block_(nfc::NfcTagUid &uid, uint8_t block_num, uint8_t key_num, const uint8_t *key);
-  bool format_mifare_classic_mifare_(nfc::NfcTagUid &uid);
-  bool format_mifare_classic_ndef_(nfc::NfcTagUid &uid);
-  bool write_mifare_classic_tag_(nfc::NfcTagUid &uid, nfc::NdefMessage *message);
+  bool auth_mifare_classic_block_(std::vector<uint8_t> &uid, uint8_t block_num, uint8_t key_num, const uint8_t *key);
+  bool format_mifare_classic_mifare_(std::vector<uint8_t> &uid);
+  bool format_mifare_classic_ndef_(std::vector<uint8_t> &uid);
+  bool write_mifare_classic_tag_(std::vector<uint8_t> &uid, nfc::NdefMessage *message);
 
-  std::unique_ptr<nfc::NfcTag> read_mifare_ultralight_tag_(nfc::NfcTagUid &uid);
+  std::unique_ptr<nfc::NfcTag> read_mifare_ultralight_tag_(std::vector<uint8_t> &uid);
   bool read_mifare_ultralight_bytes_(uint8_t start_page, uint16_t num_bytes, std::vector<uint8_t> &data);
   bool is_mifare_ultralight_formatted_(const std::vector<uint8_t> &page_3_to_6);
   uint16_t read_mifare_ultralight_capacity_();
   bool find_mifare_ultralight_ndef_(const std::vector<uint8_t> &page_3_to_6, uint8_t &message_length,
                                     uint8_t &message_start_index);
   bool write_mifare_ultralight_page_(uint8_t page_num, std::vector<uint8_t> &write_data);
-  bool write_mifare_ultralight_tag_(nfc::NfcTagUid &uid, nfc::NdefMessage *message);
+  bool write_mifare_ultralight_tag_(std::vector<uint8_t> &uid, nfc::NdefMessage *message);
   bool clean_mifare_ultralight_();
 
   bool updates_enabled_{true};
@@ -123,7 +131,7 @@ class PN532 : public PollingComponent {
   std::vector<PN532BinarySensor *> binary_sensors_;
   std::vector<nfc::NfcOnTagTrigger *> triggers_ontag_;
   std::vector<nfc::NfcOnTagTrigger *> triggers_ontagremoved_;
-  nfc::NfcTagUid current_uid_;
+  std::vector<uint8_t> current_uid_;
   nfc::NdefMessage *next_task_message_to_write_;
   uint32_t rd_start_time_{0};
   enum PN532ReadReady rd_ready_{WOULDBLOCK};
@@ -139,24 +147,6 @@ class PN532 : public PollingComponent {
     SAM_COMMAND_FAILED,
   } error_code_{NONE};
   CallbackManager<void()> on_finished_write_callback_;
-};
-
-class PN532BinarySensor : public binary_sensor::BinarySensor {
- public:
-  void set_uid(const nfc::NfcTagUid &uid) { uid_ = uid; }
-
-  bool process(const nfc::NfcTagUid &data);
-
-  void on_scan_end() {
-    if (!this->found_) {
-      this->publish_state(false);
-    }
-    this->found_ = false;
-  }
-
- protected:
-  nfc::NfcTagUid uid_;
-  bool found_{false};
 };
 
 class PN532OnFinishedWriteTrigger : public Trigger<> {

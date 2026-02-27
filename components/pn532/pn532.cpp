@@ -251,7 +251,7 @@ void PN532::loop() {
     // oops, pn532 returned invalid data
     return;
   }
-  nfc::NfcTagUid nfcid(read.begin() + 6, read.begin() + 6 + nfcid_length);
+  std::vector<uint8_t> nfcid(read.begin() + 6, read.begin() + 6 + nfcid_length);
 
   bool report = true;
   for (auto *bin_sens : this->binary_sensors_) {
@@ -436,7 +436,7 @@ void PN532::turn_off_rf_() {
   });
 }
 
-std::unique_ptr<nfc::NfcTag> PN532::read_tag_(nfc::NfcTagUid &uid) {
+std::unique_ptr<nfc::NfcTag> PN532::read_tag_(std::vector<uint8_t> &uid) {
   uint8_t type = nfc::guess_tag_type(uid.size());
 
   if (type == nfc::TAG_TYPE_MIFARE_CLASSIC) {
@@ -471,7 +471,7 @@ void PN532::write_mode(nfc::NdefMessage *message) {
   ESP_LOGD(TAG, "Waiting to write next tag");
 }
 
-bool PN532::clean_tag_(nfc::NfcTagUid &uid) {
+bool PN532::clean_tag_(std::vector<uint8_t> &uid) {
   uint8_t type = nfc::guess_tag_type(uid.size());
   if (type == nfc::TAG_TYPE_MIFARE_CLASSIC) {
     return this->format_mifare_classic_mifare_(uid);
@@ -482,7 +482,7 @@ bool PN532::clean_tag_(nfc::NfcTagUid &uid) {
   return false;
 }
 
-bool PN532::format_tag_(nfc::NfcTagUid &uid) {
+bool PN532::format_tag_(std::vector<uint8_t> &uid) {
   uint8_t type = nfc::guess_tag_type(uid.size());
   if (type == nfc::TAG_TYPE_MIFARE_CLASSIC) {
     return this->format_mifare_classic_ndef_(uid);
@@ -493,7 +493,7 @@ bool PN532::format_tag_(nfc::NfcTagUid &uid) {
   return false;
 }
 
-bool PN532::write_tag_(nfc::NfcTagUid &uid, nfc::NdefMessage *message) {
+bool PN532::write_tag_(std::vector<uint8_t> &uid, nfc::NdefMessage *message) {
   uint8_t type = nfc::guess_tag_type(uid.size());
   if (type == nfc::TAG_TYPE_MIFARE_CLASSIC) {
     return this->write_mifare_classic_tag_(uid, message);
@@ -578,7 +578,7 @@ void PN532::dump_config() {
   }
 }
 
-bool PN532BinarySensor::process(const nfc::NfcTagUid &data) {
+bool PN532BinarySensor::process(const std::vector<uint8_t> &data) {
   if (data.size() != this->uid_.size())
     return false;
 
