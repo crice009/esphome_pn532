@@ -30,7 +30,23 @@ enum PN532ReadReady {
   READY,
 };
 
-class PN532BinarySensor;
+class PN532BinarySensor : public binary_sensor::BinarySensor {
+ public:
+  void set_uid(const nfc::NfcTagUid &uid) { uid_ = uid; }
+
+  bool process(const nfc::NfcTagUid &data);
+
+  void on_scan_end() {
+    if (!this->found_) {
+      this->publish_state(false);
+    }
+    this->found_ = false;
+  }
+
+ protected:
+  nfc::NfcTagUid uid_;
+  bool found_{false};
+};
 
 class PN532 : public PollingComponent {
  public:
@@ -134,24 +150,6 @@ class PN532 : public PollingComponent {
     SAM_COMMAND_FAILED,
   } error_code_{NONE};
   CallbackManager<void()> on_finished_write_callback_;
-};
-
-class PN532BinarySensor : public binary_sensor::BinarySensor {
- public:
-  void set_uid(const nfc::NfcTagUid &uid) { uid_ = uid; }
-
-  bool process(const nfc::NfcTagUid &data);
-
-  void on_scan_end() {
-    if (!this->found_) {
-      this->publish_state(false);
-    }
-    this->found_ = false;
-  }
-
- protected:
-  nfc::NfcTagUid uid_;
-  bool found_{false};
 };
 
 class PN532OnFinishedWriteTrigger : public Trigger<> {
