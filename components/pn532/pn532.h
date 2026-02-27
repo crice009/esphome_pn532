@@ -13,8 +13,9 @@
 
 namespace esphome {
 namespace nfc {
-#ifndef NFC_TAG_UID_DEFINED
-#define NFC_TAG_UID_DEFINED
+// If nfc_tag.h didn't define NfcTagUid (older ESPHome versions), define it here.
+// Newer versions use StaticVector for NfcTagUid and define NFC_UID_MAX_LENGTH.
+#ifndef NFC_UID_MAX_LENGTH
 using NfcTagUid = std::vector<uint8_t>;
 #endif
 }
