@@ -50,6 +50,11 @@ spi:
 pn532_spi:
   cs_pin: GPIO5
   update_interval: 1s
+  health_check_enabled: true
+  health_check_interval: 60s
+  max_failed_checks: 3
+  auto_reset_on_failure: true
+  rf_field_enabled: false
   on_tag:
     then:
       - logger.log:
@@ -92,6 +97,11 @@ i2c:
 
 pn532_i2c:
   update_interval: 1s
+  health_check_enabled: true
+  health_check_interval: 60s
+  max_failed_checks: 3
+  auto_reset_on_failure: true
+  rf_field_enabled: false
   on_tag:
     then:
       - homeassistant.tag_scanned: !lambda 'return x;'
