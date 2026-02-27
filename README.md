@@ -201,4 +201,6 @@ This resolves the known long-running freeze issue on I2C (#3281).
 ## TODO
 
 - [ ] **Hardware Validation:** Test all enhanced logic (health checks, backoff, RF field control) against physical PN532 hardware over both I2C and SPI to verify real-world stability and performance improvements.
+- [ ] **Mifare Compatibility:** Specifically verify reading and writing logic with physical Mifare Classic and Ultralight cards.
+
 
