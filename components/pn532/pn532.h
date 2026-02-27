@@ -3,18 +3,24 @@
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
-#include "esphome/components/nfc/nfc_tag.h"
-#include "esphome/components/nfc/nfc.h"
-#include "esphome/components/nfc/automation.h"
 
 #include <cinttypes>
 #include <vector>
 
 namespace esphome {
 namespace nfc {
+#ifndef NFC_TAG_UID_DEFINED
+#define NFC_TAG_UID_DEFINED
 using NfcTagUid = std::vector<uint8_t>;
+#endif
+}
 }
 
+#include "esphome/components/nfc/nfc_tag.h"
+#include "esphome/components/nfc/nfc.h"
+#include "esphome/components/nfc/automation.h"
+
+namespace esphome {
 namespace pn532 {
 
 static const uint8_t PN532_COMMAND_VERSION_DATA = 0x02;
@@ -137,7 +143,7 @@ class PN532 : public PollingComponent {
   nfc::NfcTagUid current_uid_;
   nfc::NdefMessage *next_task_message_to_write_;
   uint32_t rd_start_time_{0};
-  enum PN532ReadReady rd_ready_ { WOULDBLOCK };
+  enum PN532ReadReady rd_ready_{WOULDBLOCK};
   enum NfcTask {
     READ = 0,
     CLEAN,
