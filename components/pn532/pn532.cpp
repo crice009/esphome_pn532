@@ -33,7 +33,7 @@ void PN532::setup() {
   }
   ESP_LOGD(TAG,
            "Found chip PN5%02X\n"
-           "Firmware ver. %d.%d",
+           "  Firmware ver. %d.%d",
            version_data[0], version_data[1], version_data[2]);
 
   if (!this->write_command_({
@@ -293,21 +293,21 @@ void PN532::loop() {
       }
     }
   } else if (next_task_ == CLEAN) {
-    ESP_LOGD(TAG, "  Tag cleaning");
+    ESP_LOGD(TAG, "Tag cleaning");
     if (!this->clean_tag_(nfcid)) {
       ESP_LOGE(TAG, "  Tag was not fully cleaned successfully");
     }
-    ESP_LOGD(TAG, "  Tag cleaned!");
+    ESP_LOGD(TAG, "Tag cleaned!");
   } else if (next_task_ == FORMAT) {
-    ESP_LOGD(TAG, "  Tag formatting");
+    ESP_LOGD(TAG, "Tag formatting");
     if (!this->format_tag_(nfcid)) {
-      ESP_LOGE(TAG, "Error formatting tag as NDEF");
+      ESP_LOGE(TAG, "  Error formatting tag as NDEF");
     }
-    ESP_LOGD(TAG, "  Tag formatted!");
+    ESP_LOGD(TAG, "Tag formatted!");
   } else if (next_task_ == WRITE) {
     if (this->next_task_message_to_write_ != nullptr) {
-      ESP_LOGD(TAG, "  Tag writing");
-      ESP_LOGD(TAG, "  Tag formatting");
+      ESP_LOGD(TAG, "Tag writing");
+      ESP_LOGD(TAG, "Tag formatting");
       if (!this->format_tag_(nfcid)) {
         ESP_LOGE(TAG, "  Tag could not be formatted for writing");
       } else {
