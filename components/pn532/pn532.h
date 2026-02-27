@@ -11,6 +11,10 @@
 #include <vector>
 
 namespace esphome {
+namespace nfc {
+using NfcTagUid = std::vector<uint8_t>;
+}
+
 namespace pn532 {
 
 static const uint8_t PN532_COMMAND_VERSION_DATA = 0x02;
@@ -38,7 +42,7 @@ class PN532 : public PollingComponent {
   void update() override;
 
   void loop() override;
-  void on_powerdown() override { powerdown(); }
+  void on_shutdown() override { powerdown(); }
 
   void register_tag(PN532BinarySensor *tag) { this->binary_sensors_.push_back(tag); }
   void register_ontag_trigger(nfc::NfcOnTagTrigger *trig) { this->triggers_ontag_.push_back(trig); }

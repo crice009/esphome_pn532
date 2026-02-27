@@ -247,7 +247,7 @@ void PN532::loop() {
   }
 
   uint8_t nfcid_length = read[5];
-  if (nfcid_length > nfc::NFC_UID_MAX_LENGTH || read.size() < 6U + nfcid_length) {
+  if (nfcid_length > 10 || read.size() < 6U + nfcid_length) {
     // oops, pn532 returned invalid data
     return;
   }
@@ -276,8 +276,7 @@ void PN532::loop() {
       trigger->process(tag);
 
     if (report) {
-      char uid_buf[nfc::FORMAT_UID_BUFFER_SIZE];
-      ESP_LOGD(TAG, "Found new tag '%s'", nfc::format_uid_to(uid_buf, nfcid));
+      ESP_LOGD(TAG, "Found new tag '%s'", nfc::format_uid(nfcid).c_str());
       if (tag->has_ndef_message()) {
         const auto &message = tag->get_ndef_message();
         const auto &records = message->get_records();
