@@ -47,11 +47,19 @@ pn532_spi:
             format: "SPI Tag detected: %s"
             args: ['x.c_str()']
         - output.turn_on: relay_led
-        - delay: 500ms
+    on_tag_removed:
+      then:
+        - logger.log:
+            format: "SPI Tag removed: %s"
+            args: ['x.c_str()']
         - output.turn_off: relay_led
 
 binary_sensor:
   - platform: pn532
     pn532_id: hub_spi
-    uid: "04-1A-A7-67-5F-61-80"
-    name: "SPI Tag"
+    uid: "DE-A3-0D-00"
+    name: "Mifare Tag"
+  - platform: pn532
+    pn532_id: hub_spi
+    uid: "04-DC-1F-4A-11-3C-80"
+    name: "NTAG216 Tag"
