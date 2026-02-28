@@ -235,6 +235,7 @@ void PN532::loop() {
     success = this->read_response(PN532_COMMAND_INLISTPASSIVETARGET, read);
   } else {
     this->send_ack_();  // abort still running InListPassiveTarget
+    ESP_LOGV(TAG, "InListPassiveTarget failed or timed out (ready=%d)", ready);
   }
 
   this->requested_read_ = false;
@@ -246,7 +247,7 @@ void PN532::loop() {
   };
   std::vector<TargetInfo> targets;
 
-  if (success) {
+  if (success && !read.empty()) {
     uint8_t num_targets = read[0];
     uint8_t cursor = 1;
     for (uint8_t i = 0; i < num_targets; i++) {
@@ -271,7 +272,7 @@ void PN532::loop() {
     }
   }
 
-  // Process removed tags
+  // Process removed tags - if success is false, new_uids is empty, so all tags will be marked removed.
   for (auto it = this->current_uids_.begin(); it != this->current_uids_.end(); ) {
     bool still_present = false;
     for (const auto &new_uid : new_uids) {
@@ -284,6 +285,7 @@ void PN532::loop() {
     if (!still_present) {
       std::vector<uint8_t> uid_copy = *it;
       auto tag = make_unique<nfc::NfcTag>(uid_copy);
+      ESP_LOGD(TAG, "Tag removed: %s", nfc::format_uid(uid_copy).c_str());
       for (auto *trigger : this->triggers_ontagremoved_)
         trigger->process(tag);
       it = this->current_uids_.erase(it);
