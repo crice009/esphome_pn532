@@ -1,9 +1,9 @@
 esphome:
-  name: pn532-dual-bus-test
+  name: pn532-full-test
   on_boot:
     priority: 600
     then:
-      - logger.log: "DUAL_BUS_STARTING"
+      - logger.log: "FULL_TEST_STARTING"
 
 esp32:
   board: esp32-c6-devkitc-1
@@ -43,12 +43,23 @@ pn532_i2c:
   id: hub_i2c
   address: 0x24
   update_interval: 500ms
+  health_check_enabled: true
+  health_check_interval: 10s
   on_tag:
     then:
       - logger.log:
           format: "I2C Tag detected: %s"
           args: ['x.c_str()']
       - output.turn_on: relay_led
+      - if:
+          condition:
+            lambda: 'return x == "04-1A-A7-67-5F-61-80";'
+          then:
+            - logger.log: "Verifying I2C NDEF Write..."
+            - lambda: |-
+                auto message = new nfc::NdefMessage();
+                message->add_uri_record("https://esphome.io/i2c-verified");
+                id(hub_i2c).write_mode(message);
   on_tag_removed:
     then:
       - logger.log:
@@ -60,24 +71,23 @@ pn532_spi:
   id: hub_spi
   cs_pin: GPIO5
   update_interval: 500ms
+  health_check_enabled: true
+  health_check_interval: 10s
   on_tag:
     then:
-      - if:
-          condition:
-            lambda: 'return x == "04-DC-1F-4A-11-3C-80";'
-          then:
-            - logger.log: "Writing NDEF to SPI NTAG216..."
-            - lambda: |-
-                auto message = new nfc::NdefMessage();
-                message->add_uri_record("https://github.com/JohnMcLear/esphome_pn532");
-                id(hub_spi).write_mode(message);
-            - wait_until:
-                lambda: 'return !id(hub_spi).is_writing();'
-            - logger.log: "NDEF Write finished."
       - logger.log:
           format: "SPI Tag detected: %s"
           args: ['x.c_str()']
       - output.turn_on: relay_led
+      - if:
+          condition:
+            lambda: 'return x == "04-DC-1F-4A-11-3C-80";'
+          then:
+            - logger.log: "Verifying SPI NDEF Write..."
+            - lambda: |-
+                auto message = new nfc::NdefMessage();
+                message->add_uri_record("https://esphome.io/spi-verified");
+                id(hub_spi).write_mode(message);
   on_tag_removed:
     then:
       - logger.log:
