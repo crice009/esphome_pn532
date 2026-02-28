@@ -84,5 +84,6 @@ binary_sensor:
 - [ ] Isolation: Physical failure/noise on one bus does not crash the other.
 - [ ] Format compatibility: Both `AA-BB` and `AA:BB` formats accepted in YAML.
 - [ ] **Mifare Authentication:** Mifare Classic authentication succeeds with both DEFAULT and NDEF keys across different sectors.
+- [ ] **Robust Counterfeit Detection:** Module correctly identifies emulated clones using hardware-level diagnostic checks.
 - [ ] **NTAG216 Stability:** NDEF writing completes without timing out on high-capacity NTAG216 modules.
 

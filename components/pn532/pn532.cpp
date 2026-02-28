@@ -37,10 +37,10 @@ void PN532::setup() {
            "  Firmware ver. %d.%d",
            version_data[0], version_data[1], version_data[2]);
 
-  if (version_data[1] != 0x01 || version_data[3] != 0x07 || this->rd_latency_ms_ > 100) {
-    ESP_LOGW(TAG, "PN532 firmware response looks non-standard (Ver: 0x%02X, Support: 0x%02X, Latency: %ums) - "
+  if (version_data[1] != 0x01 || version_data[3] != 0x07) {
+    ESP_LOGW(TAG, "PN532 firmware response looks non-standard (Ver: 0x%02X, Support: 0x%02X) - "
                   "you may have a counterfeit chip which could cause unreliable behavior.",
-             version_data[1], version_data[3], this->rd_latency_ms_);
+             version_data[1], version_data[3]);
   }
 
   if (!this->write_command_({
