@@ -16,6 +16,8 @@ namespace pn532 {
 static const char *const TAG = "pn532";
 
 void PN532::setup() {
+  this->current_uids_.clear();
+  this->persistent_tags_.clear();
   // Get version data
   if (!this->write_command_({PN532_COMMAND_VERSION_DATA})) {
     ESP_LOGW(TAG, "Error sending version command, trying again");
@@ -355,10 +357,10 @@ void PN532::loop() {
     
     if (!found_in_this_scan) {
       it->missing_count++;
-      if (it->missing_count >= 3) { // Must be missing for 3 consecutive polls (approx 6s at 2s interval)
+      if (it->missing_count >= 5) { // Must be missing for 5 consecutive polls (approx 10s at 2s interval)
         std::vector<uint8_t> uid_copy = it->uid;
         auto tag = make_unique<nfc::NfcTag>(uid_copy);
-        ESP_LOGD(TAG, "Tag removed: %s", nfc::format_uid(uid_copy).c_str());
+        ESP_LOGD(TAG, "Tag removed after 5 failed polls: %s", nfc::format_uid(uid_copy).c_str());
         for (auto *trigger : this->triggers_ontagremoved_)
           trigger->process(tag);
         
@@ -371,7 +373,8 @@ void PN532::loop() {
         }
         it = this->persistent_tags_.erase(it);
       } else {
-        ESP_LOGV(TAG, "Tag %s missing, count: %d", nfc::format_uid(it->uid).c_str(), it->missing_count);
+        std::vector<uint8_t> uid_for_log = it->uid;
+        ESP_LOGD(TAG, "Tag %s missing, count: %d/5", nfc::format_uid(uid_for_log).c_str(), it->missing_count);
         ++it;
       }
     } else {
@@ -567,6 +570,8 @@ bool PN532::write_tag_(uint8_t tg, std::vector<uint8_t> &uid, nfc::NdefMessage *
 
 bool PN532::reinit_() {
   ESP_LOGW(TAG, "Attempting PN532 re-initialisation...");
+  this->current_uids_.clear();
+  this->persistent_tags_.clear();
 
   if (!this->write_command_({PN532_COMMAND_VERSION_DATA})) {
     return false;
