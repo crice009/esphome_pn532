@@ -97,7 +97,7 @@ class PN532 : public PollingComponent {
   void set_user_update_interval(uint32_t ms) { this->user_update_interval_ = ms; }
   uint32_t user_update_interval_{1000};
   uint32_t backoff_ms_{0};
-  
+
  protected:
   void turn_off_rf_();
   bool write_command_(const std::vector<uint8_t> &data);
@@ -113,7 +113,7 @@ class PN532 : public PollingComponent {
   bool health_check_enabled_{true};
   uint32_t health_check_interval_{60000};
   uint32_t last_health_check_{0};
-  
+
   enum PN532ReadReady read_ready_(bool block);
   virtual bool is_read_ready() = 0;
   virtual bool write_data(const std::vector<uint8_t> &data) = 0;
