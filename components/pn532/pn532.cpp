@@ -117,6 +117,12 @@ void PN532::update() {
   if (!updates_enabled_)
     return;
 
+  // If we are already waiting for a read or currently writing NDEF, skip this cycle.
+  // This allows for a very fast update_interval (e.g. 500ms) without bus congestion.
+  if (this->requested_read_ || (this->next_task_ == WRITE && this->next_task_message_to_write_ != nullptr)) {
+    return;
+  }
+
   if (!this->sam_configured_) {
     uint32_t now = millis();
     if (this->reinit_attempts_ > 0 && now - this->last_reinit_attempt_ < 100) {
