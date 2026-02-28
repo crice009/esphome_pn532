@@ -151,6 +151,11 @@ class PN532 : public PollingComponent {
   std::vector<nfc::NfcOnTagTrigger *> triggers_ontag_;
   std::vector<nfc::NfcOnTagTrigger *> triggers_ontagremoved_;
   std::vector<std::vector<uint8_t>> current_uids_;
+  struct PersistentTag {
+    std::vector<uint8_t> uid;
+    uint8_t missing_count;
+  };
+  std::vector<PersistentTag> persistent_tags_;
   nfc::NdefMessage *next_task_message_to_write_;
   uint32_t rd_start_time_{0};
   uint32_t rd_latency_ms_{0};

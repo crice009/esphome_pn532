@@ -272,34 +272,13 @@ void PN532::loop() {
     }
   }
 
-  // Process removed tags - if success is false, new_uids is empty, so all tags will be marked removed.
-  for (auto it = this->current_uids_.begin(); it != this->current_uids_.end(); ) {
-    bool still_present = false;
-    for (const auto &new_uid : new_uids) {
-      if (*it == new_uid) {
-        still_present = true;
-        break;
-      }
-    }
-    
-    if (!still_present) {
-      std::vector<uint8_t> uid_copy = *it;
-      auto tag = make_unique<nfc::NfcTag>(uid_copy);
-      ESP_LOGD(TAG, "Tag removed: %s", nfc::format_uid(uid_copy).c_str());
-      for (auto *trigger : this->triggers_ontagremoved_)
-        trigger->process(tag);
-      it = this->current_uids_.erase(it);
-    } else {
-      ++it;
-    }
-  }
-
   // Process added/present tags
   for (auto &target : targets) {
-    bool is_new = true;
-    for (const auto &old_uid : this->current_uids_) {
-      if (target.uid == old_uid) {
-        is_new = false;
+    bool is_known = false;
+    for (auto &ptag : this->persistent_tags_) {
+      if (target.uid == ptag.uid) {
+        ptag.missing_count = 0; // Reset missing count as tag is still here
+        is_known = true;
         break;
       }
     }
@@ -309,8 +288,10 @@ void PN532::loop() {
       bin_sens->process(target.uid);
     }
 
-    if (is_new) {
+    if (!is_known) {
+      this->persistent_tags_.push_back({target.uid, 0});
       this->current_uids_.push_back(target.uid);
+      
       auto tag = this->read_tag_(target.tg, target.uid);
       for (auto *trigger : this->triggers_ontag_)
         trigger->process(tag);
@@ -359,6 +340,42 @@ void PN532::loop() {
         }
         this->read_mode();
       }
+    }
+  }
+
+  // Process removed tags using persistence counter
+  for (auto it = this->persistent_tags_.begin(); it != this->persistent_tags_.end(); ) {
+    bool found_in_this_scan = false;
+    for (const auto &new_uid : new_uids) {
+      if (it->uid == new_uid) {
+        found_in_this_scan = true;
+        break;
+      }
+    }
+    
+    if (!found_in_this_scan) {
+      it->missing_count++;
+      if (it->missing_count >= 3) { // Must be missing for 3 consecutive polls (approx 6s at 2s interval)
+        std::vector<uint8_t> uid_copy = it->uid;
+        auto tag = make_unique<nfc::NfcTag>(uid_copy);
+        ESP_LOGD(TAG, "Tag removed: %s", nfc::format_uid(uid_copy).c_str());
+        for (auto *trigger : this->triggers_ontagremoved_)
+          trigger->process(tag);
+        
+        // Also remove from current_uids_
+        for (auto uit = this->current_uids_.begin(); uit != this->current_uids_.end(); ++uit) {
+          if (*uit == uid_copy) {
+            this->current_uids_.erase(uit);
+            break;
+          }
+        }
+        it = this->persistent_tags_.erase(it);
+      } else {
+        ESP_LOGV(TAG, "Tag %s missing, count: %d", nfc::format_uid(it->uid).c_str(), it->missing_count);
+        ++it;
+      }
+    } else {
+      ++it;
     }
   }
 
