@@ -1,5 +1,5 @@
 esphome:
-  name: pn532-i2c-test
+  name: pn532-spi-test
   on_boot:
     priority: 600
     then:
@@ -21,16 +21,17 @@ external_components:
   - source:
       type: local
       path: components
-    components: [pn532, pn532_i2c]
+    components: [pn532, pn532_spi]
 
-i2c:
-  sda: GPIO21
-  scl: GPIO22
-  scan: true
+# SPI Pinout: CLK=18, MISO=16, MOSI=23, CS=5
+spi:
+  clk_pin: GPIO18
+  miso_pin: GPIO16
+  mosi_pin: GPIO23
 
-pn532_i2c:
-  - id: hub_i2c
-    address: 0x24
+pn532_spi:
+  - id: hub_spi
+    cs_pin: GPIO5
     update_interval: 2s
     health_check_enabled: true
     auto_reset_on_failure: true
@@ -38,11 +39,11 @@ pn532_i2c:
     on_tag:
       then:
         - logger.log:
-            format: "I2C Tag detected: %s"
+            format: "SPI Tag detected: %s"
             args: ['x.c_str()']
 
 binary_sensor:
   - platform: pn532
-    pn532_id: hub_i2c
-    uid: "74-10-37-94"
-    name: "I2C Tag"
+    pn532_id: hub_spi
+    uid: "04-1A-A7-67-5F-61-80"
+    name: "SPI Tag"
