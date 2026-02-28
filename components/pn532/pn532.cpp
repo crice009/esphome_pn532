@@ -37,6 +37,12 @@ void PN532::setup() {
            "  Firmware ver. %d.%d",
            version_data[0], version_data[1], version_data[2]);
 
+  if (version_data[1] != 0x01 || version_data[3] != 0x07) {
+    ESP_LOGW(TAG, "PN532 firmware response looks non-standard (Ver: 0x%02X, Support: 0x%02X) - "
+                  "you may have a counterfeit chip which could cause unreliable behavior.",
+             version_data[1], version_data[3]);
+  }
+
   if (!this->write_command_({
           PN532_COMMAND_SAMCONFIGURATION,
           0x01,  // normal mode
@@ -547,6 +553,12 @@ bool PN532::reinit_() {
   std::vector<uint8_t> ver;
   if (!this->read_response(PN532_COMMAND_VERSION_DATA, ver)) {
     return false;
+  }
+
+  if (ver[1] != 0x01 || ver[3] != 0x07) {
+    ESP_LOGW(TAG, "Re-init: PN532 firmware response looks non-standard (Ver: 0x%02X, Support: 0x%02X) - "
+                  "you may have a counterfeit chip.",
+             ver[1], ver[3]);
   }
 
   if (!this->write_command_({PN532_COMMAND_SAMCONFIGURATION, 0x01, 0x14, 0x01})) {
