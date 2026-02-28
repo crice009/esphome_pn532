@@ -117,9 +117,6 @@ void PN532::update() {
   if (!updates_enabled_)
     return;
 
-  for (auto *obj : this->binary_sensors_)
-    obj->on_scan_end();
-
   if (!this->sam_configured_) {
     uint32_t now = millis();
     if (this->reinit_attempts_ > 0 && now - this->last_reinit_attempt_ < 100) {
@@ -190,10 +187,16 @@ void PN532::update() {
           0x02,  // max 2 cards
           0x00,  // baud rate ISO14443A (106 kbit/s)
       })) {
-    // ── failure path ──────────────────────────────────────────────────
     ESP_LOGW(TAG, "Requesting tag read failed!");
     this->status_set_warning();
-    // Exponential backoff: 2s → 4s → 8s → ... → 60s max
+    
+    // Increment missing count for all persistent tags if the chip is unresponsive
+    for (auto &ptag : this->persistent_tags_) {
+      ptag.missing_count++;
+    }
+    this->process_removed_tags_({});
+
+    // Exponential backoff
     uint32_t new_backoff =
         (this->backoff_ms_ == 0) ? this->user_update_interval_ * 2 : std::min(this->backoff_ms_ * 2, (uint32_t) 60000);
     if (new_backoff != this->backoff_ms_) {
@@ -218,10 +221,6 @@ void PN532::update() {
   this->requested_read_ = true;
 }
 
-
-
-
-
 void PN532::loop() {
   if (!this->requested_read_)
     return;
@@ -237,7 +236,7 @@ void PN532::loop() {
     success = this->read_response(PN532_COMMAND_INLISTPASSIVETARGET, read);
   } else {
     this->send_ack_();  // abort still running InListPassiveTarget
-    ESP_LOGV(TAG, "InListPassiveTarget failed or timed out (ready=%d)", ready);
+    ESP_LOGV(TAG, "InListPassiveTarget timed out (ready=%d)", ready);
   }
 
   this->requested_read_ = false;
@@ -274,18 +273,35 @@ void PN532::loop() {
     }
   }
 
+  // Update missing counts for existing tags
+  for (auto &ptag : this->persistent_tags_) {
+    bool found_in_this_scan = false;
+    for (const auto &new_uid : new_uids) {
+      if (ptag.uid == new_uid) {
+        found_in_this_scan = true;
+        break;
+      }
+    }
+    if (!found_in_this_scan) {
+      ptag.missing_count++;
+    } else {
+      ptag.missing_count = 0;
+    }
+  }
+
+  this->process_removed_tags_(new_uids);
+
   // Process added/present tags
   for (auto &target : targets) {
     bool is_known = false;
     for (auto &ptag : this->persistent_tags_) {
       if (target.uid == ptag.uid) {
-        ptag.missing_count = 0; // Reset missing count as tag is still here
         is_known = true;
         break;
       }
     }
 
-    // Always process binary sensors
+    // Binary sensors are always processed for present tags
     for (auto *bin_sens : this->binary_sensors_) {
       bin_sens->process(target.uid);
     }
@@ -300,40 +316,16 @@ void PN532::loop() {
       
       std::vector<uint8_t> uid_for_format = target.uid;
       ESP_LOGD(TAG, "Found new tag '%s'", nfc::format_uid(uid_for_format).c_str());
-      if (tag->has_ndef_message()) {
-        const auto &message = tag->get_ndef_message();
-        const auto &records = message->get_records();
-        ESP_LOGD(TAG, "  NDEF formatted records:");
-        for (const auto &record : records) {
-          ESP_LOGD(TAG, "    %s - %s", record->get_type().c_str(), record->get_payload().c_str());
-        }
-      }
       
-      // Perform tasks if scheduled (only on the first new tag found to avoid complexity)
+      // Perform tasks if scheduled
       if (next_task_ != READ) {
         if (next_task_ == CLEAN) {
-          ESP_LOGD(TAG, "Tag cleaning");
-          if (!this->clean_tag_(target.tg, target.uid)) {
-            ESP_LOGE(TAG, "  Tag was not fully cleaned successfully");
-          }
-          ESP_LOGD(TAG, "Tag cleaned!");
+          if (!this->clean_tag_(target.tg, target.uid)) ESP_LOGE(TAG, "Tag clean failed");
         } else if (next_task_ == FORMAT) {
-          ESP_LOGD(TAG, "Tag formatting");
-          if (!this->format_tag_(target.tg, target.uid)) {
-            ESP_LOGE(TAG, "  Error formatting tag as NDEF");
-          }
-          ESP_LOGD(TAG, "Tag formatted!");
-        } else if (next_task_ == WRITE) {
-          if (this->next_task_message_to_write_ != nullptr) {
-            ESP_LOGD(TAG, "Tag writing");
-            if (!this->format_tag_(target.tg, target.uid)) {
-              ESP_LOGE(TAG, "  Tag could not be formatted for writing");
-            } else {
-              ESP_LOGD(TAG, "  Writing NDEF data");
-              if (!this->write_tag_(target.tg, target.uid, this->next_task_message_to_write_)) {
-                ESP_LOGE(TAG, "  Failed to write message to tag");
-              }
-              ESP_LOGD(TAG, "  Finished writing NDEF data");
+          if (!this->format_tag_(target.tg, target.uid)) ESP_LOGE(TAG, "Tag format failed");
+        } else if (next_task_ == WRITE && this->next_task_message_to_write_ != nullptr) {
+          if (this->format_tag_(target.tg, target.uid)) {
+            if (this->write_tag_(target.tg, target.uid, this->next_task_message_to_write_)) {
               delete this->next_task_message_to_write_;
               this->next_task_message_to_write_ = nullptr;
               this->on_finished_write_callback_.call();
@@ -345,45 +337,36 @@ void PN532::loop() {
     }
   }
 
-  // Process removed tags using persistence counter
+  if (new_uids.empty() && !this->rf_field_enabled_)
+    this->turn_off_rf_();
+}
+
+void PN532::process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_uids) {
   for (auto it = this->persistent_tags_.begin(); it != this->persistent_tags_.end(); ) {
-    bool found_in_this_scan = false;
-    for (const auto &new_uid : new_uids) {
-      if (it->uid == new_uid) {
-        found_in_this_scan = true;
-        break;
+    if (it->missing_count >= 3) { // 3 consecutive failed polls (approx 6s)
+      std::vector<uint8_t> uid_copy = it->uid;
+      auto tag = make_unique<nfc::NfcTag>(uid_copy);
+      ESP_LOGD(TAG, "Tag removed after 3 failed polls: %s", nfc::format_uid(uid_copy).c_str());
+      
+      for (auto *trigger : this->triggers_ontagremoved_)
+        trigger->process(tag);
+      
+      // Turn off matching binary sensors
+      for (auto *bin_sens : this->binary_sensors_) {
+        bin_sens->on_scan_end(); // This will publish false if found_ is false
       }
-    }
-    
-    if (!found_in_this_scan) {
-      it->missing_count++;
-      if (it->missing_count >= 5) { // Must be missing for 5 consecutive polls (approx 10s at 2s interval)
-        std::vector<uint8_t> uid_copy = it->uid;
-        auto tag = make_unique<nfc::NfcTag>(uid_copy);
-        ESP_LOGD(TAG, "Tag removed after 5 failed polls: %s", nfc::format_uid(uid_copy).c_str());
-        for (auto *trigger : this->triggers_ontagremoved_)
-          trigger->process(tag);
-        
-        // Also remove from current_uids_
-        for (auto uit = this->current_uids_.begin(); uit != this->current_uids_.end(); ++uit) {
-          if (*uit == uid_copy) {
-            this->current_uids_.erase(uit);
-            break;
-          }
+
+      for (auto uit = this->current_uids_.begin(); uit != this->current_uids_.end(); ++uit) {
+        if (*uit == uid_copy) {
+          this->current_uids_.erase(uit);
+          break;
         }
-        it = this->persistent_tags_.erase(it);
-      } else {
-        std::vector<uint8_t> uid_for_log = it->uid;
-        ESP_LOGD(TAG, "Tag %s missing, count: %d/5", nfc::format_uid(uid_for_log).c_str(), it->missing_count);
-        ++it;
       }
+      it = this->persistent_tags_.erase(it);
     } else {
       ++it;
     }
   }
-
-  if (new_uids.empty() && !this->rf_field_enabled_)
-    this->turn_off_rf_();
 }
 
 bool PN532::write_command_(const std::vector<uint8_t> &data) {
@@ -512,8 +495,9 @@ std::unique_ptr<nfc::NfcTag> PN532::read_tag_(uint8_t tg, std::vector<uint8_t> &
     ESP_LOGD(TAG, "Mifare ultralight");
     return this->read_mifare_ultralight_tag_(tg, uid);
   } else {
-    std::vector<uint8_t> uid_copy = uid;
-    return make_unique<nfc::NfcTag>(uid_copy);
+    NfcTagUid nfc_uid;
+    nfc_uid.assign(uid.begin(), uid.end());
+    return make_unique<nfc::NfcTag>(nfc_uid);
   }
 }
 
