@@ -16,7 +16,14 @@ std::unique_ptr<nfc::NfcTag> PN532::read_mifare_classic_tag_(uint8_t tg, std::ve
   NfcTagUid nfc_uid;
   nfc_uid.assign(uid.begin(), uid.end());
 
+  bool authenticated = false;
   if (this->auth_mifare_classic_block_(tg, uid, current_block, nfc::MIFARE_CMD_AUTH_A, nfc::NDEF_KEY)) {
+    authenticated = true;
+  } else if (this->auth_mifare_classic_block_(tg, uid, current_block, nfc::MIFARE_CMD_AUTH_A, nfc::DEFAULT_KEY)) {
+    authenticated = true;
+  }
+
+  if (authenticated) {
     std::vector<uint8_t> data;
     if (this->read_mifare_classic_block_(tg, current_block, data)) {
       if (!nfc::decode_mifare_classic_tlv(data, message_length, message_start_index)) {
@@ -27,7 +34,7 @@ std::unique_ptr<nfc::NfcTag> PN532::read_mifare_classic_tag_(uint8_t tg, std::ve
       return make_unique<nfc::NfcTag>(nfc_uid, nfc::MIFARE_CLASSIC);
     }
   } else {
-    ESP_LOGV(TAG, "Tag is not NDEF formatted");
+    ESP_LOGV(TAG, "Tag is not NDEF formatted or authentication failed");
     return make_unique<nfc::NfcTag>(nfc_uid, nfc::MIFARE_CLASSIC);
   }
 
@@ -37,7 +44,8 @@ std::unique_ptr<nfc::NfcTag> PN532::read_mifare_classic_tag_(uint8_t tg, std::ve
 
   while (index < buffer_size) {
     if (nfc::mifare_classic_is_first_block(current_block)) {
-      if (!this->auth_mifare_classic_block_(tg, uid, current_block, nfc::MIFARE_CMD_AUTH_A, nfc::NDEF_KEY)) {
+      if (!this->auth_mifare_classic_block_(tg, uid, current_block, nfc::MIFARE_CMD_AUTH_A, nfc::NDEF_KEY) &&
+          !this->auth_mifare_classic_block_(tg, uid, current_block, nfc::MIFARE_CMD_AUTH_A, nfc::DEFAULT_KEY)) {
         ESP_LOGE(TAG, "Error, Block authentication failed for %d", current_block);
       }
     }
@@ -116,7 +124,8 @@ bool PN532::format_mifare_classic_mifare_(uint8_t tg, std::vector<uint8_t> &uid)
   bool error = false;
 
   for (int block = 0; block < 64; block += 4) {
-    if (!this->auth_mifare_classic_block_(tg, uid, block + 3, nfc::MIFARE_CMD_AUTH_B, nfc::DEFAULT_KEY)) {
+    if (!this->auth_mifare_classic_block_(tg, uid, block + 3, nfc::MIFARE_CMD_AUTH_B, nfc::NDEF_KEY) &&
+        !this->auth_mifare_classic_block_(tg, uid, block + 3, nfc::MIFARE_CMD_AUTH_B, nfc::DEFAULT_KEY)) {
       continue;
     }
     if (block != 0) {
@@ -170,7 +179,8 @@ bool PN532::format_mifare_classic_ndef_(uint8_t tg, std::vector<uint8_t> &uid) {
   ESP_LOGD(TAG, "Sector 0 formatted to NDEF");
 
   for (int block = 4; block < 64; block += 4) {
-    if (!this->auth_mifare_classic_block_(tg, uid, block + 3, nfc::MIFARE_CMD_AUTH_B, nfc::DEFAULT_KEY)) {
+    if (!this->auth_mifare_classic_block_(tg, uid, block + 3, nfc::MIFARE_CMD_AUTH_B, nfc::NDEF_KEY) &&
+        !this->auth_mifare_classic_block_(tg, uid, block + 3, nfc::MIFARE_CMD_AUTH_B, nfc::DEFAULT_KEY)) {
       return false;
     }
     if (block == 4) {
@@ -240,7 +250,8 @@ bool PN532::write_mifare_classic_tag_(uint8_t tg, std::vector<uint8_t> &uid, nfc
 
   while (index < buffer_length) {
     if (nfc::mifare_classic_is_first_block(current_block)) {
-      if (!this->auth_mifare_classic_block_(tg, uid, current_block, nfc::MIFARE_CMD_AUTH_A, nfc::NDEF_KEY)) {
+      if (!this->auth_mifare_classic_block_(tg, uid, current_block, nfc::MIFARE_CMD_AUTH_A, nfc::NDEF_KEY) &&
+          !this->auth_mifare_classic_block_(tg, uid, current_block, nfc::MIFARE_CMD_AUTH_A, nfc::DEFAULT_KEY)) {
         return false;
       }
     }
