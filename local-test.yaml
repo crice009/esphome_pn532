@@ -34,14 +34,6 @@ output:
     pin: GPIO2
     id: relay_led
 
-script:
-  - id: keep_led_on
-    mode: restart
-    then:
-      - output.turn_on: relay_led
-      - delay: 3s  # Keep on for 3 seconds (longer than update_interval)
-      - output.turn_off: relay_led
-
 pn532_spi:
   - id: hub_spi
     cs_pin: GPIO5
@@ -54,13 +46,12 @@ pn532_spi:
         - logger.log:
             format: "SPI Tag detected: %s"
             args: ['x.c_str()']
-        - script.execute: keep_led_on
+        - output.turn_on: relay_led
     on_tag_removed:
       then:
         - logger.log:
             format: "SPI Tag removed: %s"
             args: ['x.c_str()']
-        - script.stop: keep_led_on
         - output.turn_off: relay_led
 
 binary_sensor:
