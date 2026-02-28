@@ -198,7 +198,19 @@ This resolves the known long-running freeze issue on I2C (#3281).
 
 ---
 
+## ⚠️ WARNING: COUNTERFEIT PN532 MODULES
+
+Many PN532 modules sold on common marketplaces are counterfeit or clones. These modules often:
+- Pass the initial version check (reporting Firmware v1.6).
+- **Fail** during actual tag polling, leading to I2C/SPI timeouts and "took a long time" warnings in ESPHome.
+- Exhibit highly unstable behavior compared to legitimate NXP chips.
+
+**We are currently investigating ways to automatically detect and handle these counterfeit devices.** If you are experiencing persistent "Timed out waiting for readiness" errors, you likely have a counterfeit module. Please join the [ESPHome Discord](https://esphome.io/guides/faq.html#where-can-i-get-help) or community forums to discuss how best to handle these clones.
+
+---
+
 ## Supported Card Types
+
 
 This component currently supports **ISO14443A** cards (106 kbit/s), which includes:
 - Mifare Classic (1k, 4k)
@@ -214,6 +226,8 @@ Support for ISO14443B, FeliCa, and Jewel cards is physically possible with the P
 - [ ] **Hardware Validation:** Test all enhanced logic (health checks, backoff, RF field control) against physical PN532 hardware over both I2C and SPI.
 - [ ] **Mifare Compatibility:** Specifically verify reading and writing logic with physical Mifare Classic and Ultralight cards.
 - [ ] **Multi-Type Polling:** Extend `InListPassiveTarget` logic to optionally poll for ISO14443B and FeliCa tags.
+- [ ] **Counterfeit Detection:** Research and implement automated detection of counterfeit/clone modules (e.g., detecting persistent readiness timeouts after successful version checks) to provide better user feedback.
+
 
 
 
