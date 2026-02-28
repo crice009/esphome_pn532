@@ -79,6 +79,7 @@ binary_sensor:
 | **Mifare Formatting** | Present a "virgin" Mifare Classic card to either bus. | Component successfully authenticates with default key, formats to NDEF, and writes URI. |
 
 ## 4. Success Criteria
+- [ ] **Critical: SPI Hardware:** PN532 initializes and reads tags reliably over the SPI bus without timeouts or data corruption.
 - [ ] Non-blocking: No `delay()` or `took a long time` warnings on either bus.
 - [ ] Portability: NDEF and Mifare logic performs identically on I2C and SPI.
 - [ ] Isolation: Physical failure/noise on one bus does not crash the other.
