@@ -31,7 +31,7 @@ spi:
 
 output:
   - platform: gpio
-    pin: GPIO8
+    pin: GPIO2
     id: relay_led
 
 pn532_spi:
