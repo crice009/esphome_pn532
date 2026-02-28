@@ -29,18 +29,26 @@ spi:
   miso_pin: GPIO20
   mosi_pin: GPIO23
 
+output:
+  - platform: gpio
+    pin: GPIO8
+    id: relay_led
+
 pn532_spi:
   - id: hub_spi
     cs_pin: GPIO5
     update_interval: 2s
     health_check_enabled: true
     auto_reset_on_failure: true
-    rf_field_enabled: true  # Changed to true to rule out RF field switching issues
+    rf_field_enabled: true
     on_tag:
       then:
         - logger.log:
             format: "SPI Tag detected: %s"
             args: ['x.c_str()']
+        - output.turn_on: relay_led
+        - delay: 500ms
+        - output.turn_off: relay_led
 
 binary_sensor:
   - platform: pn532
