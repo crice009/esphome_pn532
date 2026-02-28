@@ -76,7 +76,9 @@ pn532_spi:
 binary_sensor:
   - platform: pn532
     pn532_id: hub_i2c
-    name: "I2C Tag Presence"
+    uid: "00-00-00-00"
+    name: "I2C Dummy Tag"
   - platform: pn532
     pn532_id: hub_spi
-    name: "SPI Tag Presence"
+    uid: "00-00-00-00"
+    name: "SPI Dummy Tag"
