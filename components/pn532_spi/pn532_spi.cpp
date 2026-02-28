@@ -1,6 +1,6 @@
 #include "pn532_spi.h"
-#include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
 
 // Based on:
 // - https://cdn-shop.adafruit.com/datasheets/PN532C106_Application+Note_v1.2.pdf
@@ -23,9 +23,10 @@ void PN532Spi::setup() {
 bool PN532Spi::is_read_ready() {
   this->enable();
   this->write_byte(0x02);
-  bool ready = this->read_byte() == 0x01;
+  uint8_t status = this->read_byte();
   this->disable();
-  return ready;
+  ESP_LOGVV(TAG, "Read ready status: 0x%02X", status);
+  return status == 0x01;
 }
 
 bool PN532Spi::write_data(const std::vector<uint8_t> &data) {

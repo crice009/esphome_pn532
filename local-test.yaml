@@ -23,10 +23,10 @@ external_components:
       path: components
     components: [pn532, pn532_spi]
 
-# SPI Pinout: CLK=18, MISO=16, MOSI=23, CS=5
+# SPI Pinout: CLK=18, MISO=20, MOSI=23, CS=5
 spi:
   clk_pin: GPIO18
-  miso_pin: GPIO16
+  miso_pin: GPIO20
   mosi_pin: GPIO23
 
 pn532_spi:
@@ -35,7 +35,7 @@ pn532_spi:
     update_interval: 2s
     health_check_enabled: true
     auto_reset_on_failure: true
-    rf_field_enabled: false
+    rf_field_enabled: true  # Changed to true to rule out RF field switching issues
     on_tag:
       then:
         - logger.log:

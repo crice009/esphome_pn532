@@ -7,7 +7,6 @@ esp32:
   variant: esp32c6
   framework:
     type: esp-idf
-  platform: https://github.com/pioarduino/platform-espressif32.git#51.03.07
 
 logger:
   level: VERY_VERBOSE
@@ -22,7 +21,7 @@ external_components:
 
 spi:
   clk_pin: GPIO18
-  miso_pin: GPIO16
+  miso_pin: GPIO20
   mosi_pin: GPIO23
 
 pn532_spi:

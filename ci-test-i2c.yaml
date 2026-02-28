@@ -1,13 +1,12 @@
 esphome:
-  name: pn532-i2c-test
-  friendly_name: PN532 I2C Test
+  name: pn532-ndef-test
+  friendly_name: PN532 NDEF Test
 
 esp32:
   board: esp32-c6-devkitc-1
   variant: esp32c6
   framework:
     type: esp-idf
-  platform: https://github.com/pioarduino/platform-espressif32.git#51.03.07
 
 logger:
   level: VERY_VERBOSE
@@ -29,22 +28,24 @@ pn532_i2c:
   id: pn532_board
   address: 0x24
   update_interval: 2s
-  health_check_enabled: true
-  auto_reset_on_failure: true
-  rf_field_enabled: false
   on_tag:
     then:
-      - logger.log:
-          format: "I2C Tag detected: %s"
-          args: ['x.c_str()']
-  on_tag_removed:
-    then:
-      - logger.log:
-          format: "I2C Tag removed: %s"
-          args: ['x.c_str()']
+      - if:
+          condition:
+            lambda: 'return x == "04-5A-34-53-6F-61-80";'
+          then:
+            - logger.log: "Writing NEW NDEF URI to tag..."
+            - lambda: |-
+                auto message = new nfc::NdefMessage();
+                message->add_uri_record("https://esphome.io/pn532-new-test");
+                id(pn532_board).write_mode(message);
+            - wait_until:
+                not:
+                  pn532.is_writing:
+            - logger.log: "NDEF Write finished."
 
 binary_sensor:
   - platform: pn532
     pn532_id: pn532_board
-    name: "Test Badge I2C"
-    uid: "74-10-37-94"
+    name: "Target Tag"
+    uid: "04-5A-34-53-6F-61-80"
