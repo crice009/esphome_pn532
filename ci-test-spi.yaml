@@ -1,51 +1,46 @@
 esphome:
-  name: pn532-spi-ci-test
-  friendly_name: PN532 SPI CI Test
+  name: pn532-spi-test
+  friendly_name: PN532 SPI Test
 
 esp32:
-  board: esp32dev
+  board: esp32-c6-devkitc-1
+  variant: esp32c6
   framework:
-    type: arduino
+    type: esp-idf
+  platform: https://github.com/pioarduino/platform-espressif32.git#51.03.07
 
 logger:
-  level: DEBUG
-
-wifi:
-  ssid: "CI_DUMMY_SSID"
-  password: "CI_DUMMY_PASSWORD"
+  level: VERY_VERBOSE
+  hardware_uart: USB_SERIAL_JTAG
 
 external_components:
   - source:
       type: local
       path: components
-    # Explicitly list all three components so ESPHome overrides the built-in
-    # pn532 package entirely (including binary_sensor.py submodule).
     components: [pn532, pn532_spi, pn532_i2c]
     refresh: 0s
 
 spi:
   clk_pin: GPIO18
-  miso_pin: GPIO19
+  miso_pin: GPIO16
   mosi_pin: GPIO23
 
 pn532_spi:
   id: pn532_board
   cs_pin: GPIO5
-  update_interval: 1s
+  update_interval: 2s
   health_check_enabled: true
-  health_check_interval: 60s
-  max_failed_checks: 3
   auto_reset_on_failure: true
   rf_field_enabled: false
   on_tag:
     then:
       - logger.log:
-          format: "Tag scanned: %s"
+          format: "SPI Tag detected: %s"
           args: ['x.c_str()']
   on_tag_removed:
     then:
       - logger.log:
-          format: "Tag removed: %s"
+          format: "SPI Tag removed: %s"
           args: ['x.c_str()']
 
 binary_sensor:

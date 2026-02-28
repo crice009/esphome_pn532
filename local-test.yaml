@@ -1,0 +1,48 @@
+esphome:
+  name: pn532-i2c-test
+  on_boot:
+    priority: 600
+    then:
+      - logger.log: "DEVICE_STARTING"
+      - delay: 5s
+      - logger.log: "BOOT_SIGNAL"
+
+esp32:
+  board: esp32-c6-devkitc-1
+  variant: esp32c6
+  framework:
+    type: esp-idf
+
+logger:
+  level: VERY_VERBOSE
+  hardware_uart: USB_SERIAL_JTAG
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [pn532, pn532_i2c]
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  scan: true
+
+pn532_i2c:
+  - id: hub_i2c
+    address: 0x24
+    update_interval: 2s
+    health_check_enabled: true
+    auto_reset_on_failure: true
+    rf_field_enabled: false
+    on_tag:
+      then:
+        - logger.log:
+            format: "I2C Tag detected: %s"
+            args: ['x.c_str()']
+
+binary_sensor:
+  - platform: pn532
+    pn532_id: hub_i2c
+    uid: "74-10-37-94"
+    name: "I2C Tag"
