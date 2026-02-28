@@ -115,6 +115,8 @@ class PN532 : public PollingComponent {
   uint32_t health_check_interval_{60000};
   uint32_t last_health_check_{0};
 
+  void process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_uids);
+
   enum PN532ReadReady read_ready_(bool block);
   virtual bool is_read_ready() = 0;
   virtual bool write_data(const std::vector<uint8_t> &data) = 0;
