@@ -223,12 +223,13 @@ Support for ISO14443B, FeliCa, and Jewel cards is physically possible with the P
 
 ## TODO
 
-- [ ] **Critical: SPI Hardware Support:** Resolve persistent failures/timeouts on the SPI bus. Finalize validation of all enhanced logic (health checks, backoff, RF field control) against physical PN532 hardware over SPI.
-- [ ] **Mifare Compatibility:** Specifically verify reading and writing logic with physical Mifare Classic and Ultralight cards.
+- [x] **SPI Hardware Support:** Confirmed stable initialization and reliable tag reading over SPI.
+- [x] **Multi-Tag Support:** Successfully implemented simultaneous detection and parsing of up to 2 tags per polling cycle.
+- [x] **Tag Persistence:** Implemented robust removal persistence (3-cycle threshold) to eliminate LED/trigger flapping.
+- [ ] **NTAG216 Write Stability:** Resolve the issue where NTAG216 modules time out during NDEF write operations (even with a 3000ms readiness timeout and inter-page delays).
 - [ ] **Mifare Authentication Fix:** Investigate and resolve persistent authentication failures on some Mifare Classic tags, ensuring fallback keys and sector-specific authentication are handled correctly.
 - [ ] **Multi-Type Polling:** Extend `InListPassiveTarget` logic to optionally poll for ISO14443B and FeliCa tags.
-- [ ] **Robust Counterfeit Detection:** Research and implement automated detection of counterfeit/clone modules using deeper silicon-level checks (e.g., `Diagnose` 0x00 command RAM/ROM tests and CIU register bitmask validation) to reliably identify "fast" clones that spoof version bytes and timing.
-- [ ] **NTAG216 Write Stability:** Resolve the issue where NTAG216 modules time out during NDEF write operations (even with a 3000ms readiness timeout and inter-page delays).
+- [ ] **Robust Counterfeit Detection:** Research and implement automated detection of counterfeit/clone modules using deeper silicon-level checks (e.g., `Diagnose` 0x00 command RAM/ROM tests and CIU register bitmask validation).
 
 
 
