@@ -1,11 +1,9 @@
 esphome:
-  name: pn532-spi-test
+  name: pn532-dual-bus-test
   on_boot:
     priority: 600
     then:
-      - logger.log: "DEVICE_STARTING"
-      - delay: 5s
-      - logger.log: "BOOT_SIGNAL"
+      - logger.log: "DUAL_BUS_STARTING"
 
 esp32:
   board: esp32-c6-devkitc-1
@@ -21,9 +19,16 @@ external_components:
   - source:
       type: local
       path: components
-    components: [pn532, pn532_spi]
+    components: [pn532, pn532_spi, pn532_i2c]
 
-# SPI Pinout: CLK=18, MISO=20, MOSI=23, CS=5
+# I2C: SDA=21, SCL=22
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  scan: true
+  frequency: 400kHz
+
+# SPI: CLK=18, MISO=20, MOSI=23, CS=5
 spi:
   clk_pin: GPIO18
   miso_pin: GPIO20
@@ -34,32 +39,44 @@ output:
     pin: GPIO2
     id: relay_led
 
+pn532_i2c:
+  id: hub_i2c
+  address: 0x24
+  update_interval: 2s
+  on_tag:
+    then:
+      - logger.log:
+          format: "I2C Tag detected: %s"
+          args: ['x.c_str()']
+      - output.turn_on: relay_led
+  on_tag_removed:
+    then:
+      - logger.log:
+          format: "I2C Tag removed: %s"
+          args: ['x.c_str()']
+      - output.turn_off: relay_led
+
 pn532_spi:
-  - id: hub_spi
-    cs_pin: GPIO5
-    update_interval: 2s
-    health_check_enabled: true
-    auto_reset_on_failure: true
-    rf_field_enabled: true
-    on_tag:
-      then:
-        - logger.log:
-            format: "SPI Tag detected: %s"
-            args: ['x.c_str()']
-        - output.turn_on: relay_led
-    on_tag_removed:
-      then:
-        - logger.log:
-            format: "SPI Tag removed: %s"
-            args: ['x.c_str()']
-        - output.turn_off: relay_led
+  id: hub_spi
+  cs_pin: GPIO5
+  update_interval: 2s
+  on_tag:
+    then:
+      - logger.log:
+          format: "SPI Tag detected: %s"
+          args: ['x.c_str()']
+      - output.turn_on: relay_led
+  on_tag_removed:
+    then:
+      - logger.log:
+          format: "SPI Tag removed: %s"
+          args: ['x.c_str()']
+      - output.turn_off: relay_led
 
 binary_sensor:
   - platform: pn532
-    pn532_id: hub_spi
-    uid: "DE-A3-0D-00"
-    name: "Mifare Tag"
+    pn532_id: hub_i2c
+    name: "I2C Tag Presence"
   - platform: pn532
     pn532_id: hub_spi
-    uid: "04-DC-1F-4A-11-3C-80"
-    name: "NTAG216 Tag"
+    name: "SPI Tag Presence"
