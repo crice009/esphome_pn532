@@ -274,7 +274,10 @@ void PN532::loop() {
       this->current_uids_.push_back(target.uid);
       auto tag = this->read_tag_(target.tg, target.uid);
       for (auto *trigger : this->triggers_ontag_) trigger->process(tag);
-      ESP_LOGD(TAG, "Found new tag '%s'", nfc::format_uid(target.uid).c_str());
+      
+      NfcTagUid nfc_uid;
+      nfc_uid.assign(target.uid.begin(), target.uid.end());
+      ESP_LOGD(TAG, "Found new tag '%s'", nfc::format_uid(nfc_uid).c_str());
       
       if (next_task_ != READ) {
         if (next_task_ == CLEAN) this->clean_tag_(target.tg, target.uid);
@@ -303,8 +306,12 @@ void PN532::process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_u
   for (auto it = this->persistent_tags_.begin(); it != this->persistent_tags_.end(); ) {
     if (it->missing_count >= 3) {
       std::vector<uint8_t> uid_copy = it->uid;
-      auto tag = make_unique<nfc::NfcTag>(uid_copy);
-      ESP_LOGD(TAG, "Tag removed (threshold 3): %s", nfc::format_uid(uid_copy).c_str());
+      
+      NfcTagUid nfc_uid;
+      nfc_uid.assign(uid_copy.begin(), uid_copy.end());
+      auto tag = make_unique<nfc::NfcTag>(nfc_uid);
+      
+      ESP_LOGD(TAG, "Tag removed (threshold 3): %s", nfc::format_uid(nfc_uid).c_str());
       for (auto *trigger : this->triggers_ontagremoved_) trigger->process(tag);
       for (auto uit = this->current_uids_.begin(); uit != this->current_uids_.end(); ++uit) {
         if (*uit == uid_copy) { this->current_uids_.erase(uit); break; }
@@ -312,7 +319,9 @@ void PN532::process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_u
       it = this->persistent_tags_.erase(it);
     } else {
       if (it->missing_count > 0) {
-        ESP_LOGD(TAG, "Tag %s missing, count %d/3", nfc::format_uid(it->uid).c_str(), it->missing_count);
+        NfcTagUid nfc_uid;
+        nfc_uid.assign(it->uid.begin(), it->uid.end());
+        ESP_LOGD(TAG, "Tag %s missing, count %d/3", nfc::format_uid(nfc_uid).c_str(), it->missing_count);
       }
       ++it;
     }
