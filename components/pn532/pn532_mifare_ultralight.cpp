@@ -2,6 +2,7 @@
 
 #include "pn532.h"
 #include "esphome/core/log.h"
+#include "esphome/core/hal.h"
 
 namespace esphome {
 namespace pn532 {
@@ -152,6 +153,7 @@ bool PN532::write_mifare_ultralight_tag_(uint8_t tg, std::vector<uint8_t> &uid, 
     }
     index += nfc::MIFARE_ULTRALIGHT_PAGE_SIZE;
     current_page++;
+    delay(10); // Small delay to allow NTAG216 to process the write
   }
   return true;
 }
