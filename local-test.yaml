@@ -42,7 +42,7 @@ output:
 pn532_i2c:
   id: hub_i2c
   address: 0x24
-  update_interval: 2s
+  update_interval: 5s
   on_tag:
     then:
       - logger.log:
@@ -59,7 +59,7 @@ pn532_i2c:
 pn532_spi:
   id: hub_spi
   cs_pin: GPIO5
-  update_interval: 2s
+  update_interval: 5s
   on_tag:
     then:
       - if:
