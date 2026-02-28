@@ -62,6 +62,19 @@ pn532_spi:
   update_interval: 2s
   on_tag:
     then:
+      - if:
+          condition:
+            lambda: 'return x == "04-DC-1F-4A-11-3C-80";'
+          then:
+            - logger.log: "Writing NDEF to SPI NTAG216..."
+            - lambda: |-
+                auto message = new nfc::NdefMessage();
+                message->add_uri_record("https://github.com/JohnMcLear/esphome_pn532");
+                id(hub_spi).write_mode(message);
+            - wait_until:
+                not:
+                  pn532.is_writing:
+            - logger.log: "NDEF Write finished."
       - logger.log:
           format: "SPI Tag detected: %s"
           args: ['x.c_str()']
@@ -76,9 +89,9 @@ pn532_spi:
 binary_sensor:
   - platform: pn532
     pn532_id: hub_i2c
-    uid: "00-00-00-00"
-    name: "I2C Dummy Tag"
+    uid: "04-1A-A7-67-5F-61-80"
+    name: "I2C Ring Presence"
   - platform: pn532
     pn532_id: hub_spi
-    uid: "00-00-00-00"
-    name: "SPI Dummy Tag"
+    uid: "04-DC-1F-4A-11-3C-80"
+    name: "SPI Tag Presence"
