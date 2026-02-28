@@ -37,10 +37,10 @@ void PN532::setup() {
            "  Firmware ver. %d.%d",
            version_data[0], version_data[1], version_data[2]);
 
-  if (version_data[1] != 0x01 || version_data[3] != 0x07 || this->ready_poll_count_ > 50) {
-    ESP_LOGW(TAG, "PN532 firmware response looks non-standard (Ver: 0x%02X, Support: 0x%02X, Polls: %u) - "
+  if (version_data[1] != 0x01 || version_data[3] != 0x07 || this->rd_latency_ms_ > 100) {
+    ESP_LOGW(TAG, "PN532 firmware response looks non-standard (Ver: 0x%02X, Support: 0x%02X, Latency: %ums) - "
                   "you may have a counterfeit chip which could cause unreliable behavior.",
-             version_data[1], version_data[3], this->ready_poll_count_);
+             version_data[1], version_data[3], this->rd_latency_ms_);
   }
 
   if (!this->write_command_({
@@ -439,17 +439,17 @@ enum PN532ReadReady PN532::read_ready_(bool block) {
 
   if (!this->rd_start_time_) {
     this->rd_start_time_ = millis();
-    this->ready_poll_count_ = 0;
   }
 
   while (true) {
-    this->ready_poll_count_++;
     if (this->is_read_ready()) {
+      this->rd_latency_ms_ = millis() - this->rd_start_time_;
       this->rd_ready_ = READY;
       break;
     }
 
     if (millis() - this->rd_start_time_ > 3000) {
+      this->rd_latency_ms_ = 3000;
       ESP_LOGV(TAG, "Timed out waiting for readiness from PN532!");
       this->rd_ready_ = TIMEOUT;
       break;
