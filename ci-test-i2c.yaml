@@ -30,22 +30,12 @@ pn532_i2c:
   update_interval: 2s
   on_tag:
     then:
-      - if:
-          condition:
-            lambda: 'return x == "04-5A-34-53-6F-61-80";'
-          then:
-            - logger.log: "Writing NEW NDEF URI to tag..."
-            - lambda: |-
-                auto message = new nfc::NdefMessage();
-                message->add_uri_record("https://esphome.io/pn532-new-test");
-                id(pn532_board).write_mode(message);
-            - wait_until:
-                not:
-                  pn532.is_writing:
-            - logger.log: "NDEF Write finished."
+      - logger.log:
+          format: "Tag detected: %s"
+          args: ['x.c_str()']
 
 binary_sensor:
   - platform: pn532
     pn532_id: pn532_board
-    name: "Target Tag"
-    uid: "04-5A-34-53-6F-61-80"
+    name: "Mifare Classic Tag"
+    uid: "DE-A3-0D-00"
