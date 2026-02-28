@@ -74,6 +74,7 @@ pn532_spi:
             - wait_until:
                 not:
                   pn532.is_writing:
+                    pn532_id: hub_spi
             - logger.log: "NDEF Write finished."
       - logger.log:
           format: "SPI Tag detected: %s"
