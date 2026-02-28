@@ -72,9 +72,7 @@ pn532_spi:
                 message->add_uri_record("https://github.com/JohnMcLear/esphome_pn532");
                 id(hub_spi).write_mode(message);
             - wait_until:
-                not:
-                  pn532.is_writing:
-                    pn532_id: hub_spi
+                lambda: 'return !id(hub_spi).is_writing();'
             - logger.log: "NDEF Write finished."
       - logger.log:
           format: "SPI Tag detected: %s"
