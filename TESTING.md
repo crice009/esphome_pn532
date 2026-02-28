@@ -83,5 +83,6 @@ binary_sensor:
 - [ ] Portability: NDEF and Mifare logic performs identically on I2C and SPI.
 - [ ] Isolation: Physical failure/noise on one bus does not crash the other.
 - [ ] Format compatibility: Both `AA-BB` and `AA:BB` formats accepted in YAML.
+- [ ] **Mifare Authentication:** Mifare Classic authentication succeeds with both DEFAULT and NDEF keys across different sectors.
 - [ ] **NTAG216 Stability:** NDEF writing completes without timing out on high-capacity NTAG216 modules.
 

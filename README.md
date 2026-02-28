@@ -225,6 +225,7 @@ Support for ISO14443B, FeliCa, and Jewel cards is physically possible with the P
 
 - [ ] **Hardware Validation:** Test all enhanced logic (health checks, backoff, RF field control) against physical PN532 hardware over both I2C and SPI.
 - [ ] **Mifare Compatibility:** Specifically verify reading and writing logic with physical Mifare Classic and Ultralight cards.
+- [ ] **Mifare Authentication Fix:** Investigate and resolve persistent authentication failures on some Mifare Classic tags, ensuring fallback keys and sector-specific authentication are handled correctly.
 - [ ] **Multi-Type Polling:** Extend `InListPassiveTarget` logic to optionally poll for ISO14443B and FeliCa tags.
 - [ ] **Counterfeit Detection:** Research and implement automated detection of counterfeit/clone modules (e.g., detecting persistent readiness timeouts after successful version checks) to provide better user feedback.
 - [ ] **NTAG216 Write Stability:** Resolve the issue where NTAG216 modules time out during NDEF write operations (even with a 3000ms readiness timeout and inter-page delays).
