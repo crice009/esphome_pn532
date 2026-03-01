@@ -3,7 +3,7 @@ esphome:
   on_boot:
     priority: 600
     then:
-      - logger.log: "FULL_TEST_STARTING"
+      - logger.log: "FULL_TEST_RESTARTING"
 
 esp32:
   board: esp32-c6-devkitc-1
@@ -26,7 +26,7 @@ i2c:
   sda: GPIO21
   scl: GPIO22
   scan: true
-  frequency: 400kHz
+  frequency: 100kHz
 
 # SPI: CLK=18, MISO=20, MOSI=23, CS=5
 spi:
@@ -42,24 +42,14 @@ output:
 pn532_i2c:
   id: hub_i2c
   address: 0x24
-  update_interval: 250ms
-  health_check_enabled: true
-  health_check_interval: 30s
+  update_interval: 1s
+  health_check_enabled: false
   on_tag:
     then:
       - logger.log:
           format: "I2C Tag detected: %s"
           args: ['x.c_str()']
       - output.turn_on: relay_led
-      - if:
-          condition:
-            lambda: 'return x == "04-1A-A7-67-5F-61-80";'
-          then:
-            - logger.log: "Verifying I2C NDEF Write..."
-            - lambda: |-
-                auto message = new nfc::NdefMessage();
-                message->add_uri_record("https://esphome.io/i2c-verified");
-                id(hub_i2c).write_mode(message);
   on_tag_removed:
     then:
       - logger.log:
@@ -70,30 +60,19 @@ pn532_i2c:
 pn532_spi:
   id: hub_spi
   cs_pin: GPIO5
-  update_interval: 500ms
+  update_interval: 5s
   health_check_enabled: true
-  health_check_interval: 10s
+  health_check_interval: 30s
   on_tag:
     then:
       - logger.log:
           format: "SPI Tag detected: %s"
           args: ['x.c_str()']
-      - output.turn_on: relay_led
-      - if:
-          condition:
-            lambda: 'return x == "04-DC-1F-4A-11-3C-80";'
-          then:
-            - logger.log: "Verifying SPI NDEF Write..."
-            - lambda: |-
-                auto message = new nfc::NdefMessage();
-                message->add_uri_record("https://esphome.io/spi-verified");
-                id(hub_spi).write_mode(message);
   on_tag_removed:
     then:
       - logger.log:
           format: "SPI Tag removed: %s"
           args: ['x.c_str()']
-      - output.turn_off: relay_led
 
 binary_sensor:
   - platform: pn532

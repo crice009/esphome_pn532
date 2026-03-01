@@ -457,6 +457,10 @@ bool PN532::reinit_() {
   if (!this->read_response(PN532_COMMAND_SAMCONFIGURATION, sam_result)) return false;
   if (!this->rf_field_enabled_) this->turn_off_rf_();
   this->sam_configured_ = true;
+
+  // Set MaxRetries for passive activation to 2
+  this->write_command_({PN532_COMMAND_RFCONFIGURATION, 0x05, 0xFF, 0x01, 0x02});
+
   ESP_LOGI(TAG, "PN532 re-initialised successfully!");
   return true;
 }
