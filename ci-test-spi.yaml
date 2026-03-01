@@ -1,3 +1,4 @@
+---
 esphome:
   name: pn532-spi-test
   friendly_name: PN532 SPI Test

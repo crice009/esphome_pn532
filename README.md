@@ -232,8 +232,3 @@ Support for ISO14443B, FeliCa, and Jewel cards is physically possible with the P
 - [ ] **Mifare Authentication Fix:** Investigate and resolve persistent authentication failures on some Mifare Classic tags, ensuring fallback keys and sector-specific authentication are handled correctly.
 - [ ] **Multi-Type Polling:** Extend `InListPassiveTarget` logic to optionally poll for ISO14443B and FeliCa tags.
 - [ ] **Robust Counterfeit Detection:** Research and implement automated detection of counterfeit/clone modules using deeper silicon-level checks (e.g., `Diagnose` 0x00 command RAM/ROM tests and CIU register bitmask validation).
-
-
-
-
-

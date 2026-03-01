@@ -1,3 +1,4 @@
+---
 esphome:
   name: pn532-ndef-test
   friendly_name: PN532 NDEF Test

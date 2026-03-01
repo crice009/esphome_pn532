@@ -90,4 +90,3 @@ binary_sensor:
 - [ ] **Mifare Authentication:** Resolve intermittent failures with non-standard keys.
 - [ ] **Robust Counterfeit Detection:** Module correctly identifies emulated clones using hardware-level diagnostic checks.
 - [ ] **NTAG216 Stability:** NDEF writing completes without timing out on high-capacity NTAG216 modules.
-

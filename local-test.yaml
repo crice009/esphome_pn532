@@ -1,3 +1,4 @@
+---
 esphome:
   name: pn532-full-test
   on_boot:
