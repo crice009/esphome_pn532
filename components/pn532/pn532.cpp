@@ -88,6 +88,11 @@ void PN532::setup() {
   }
   this->user_update_interval_ = this->update_interval_;
   this->sam_configured_ = true;
+
+  // Set MaxRetries for passive activation to 2 (default is infinite 0xFF)
+  // This makes the InListPassiveTarget command return much faster if no tag is present.
+  this->write_command_({PN532_COMMAND_RFCONFIGURATION, 0x05, 0xFF, 0x01, 0x02});
+
   this->turn_off_rf_();
 }
 
