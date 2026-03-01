@@ -310,14 +310,14 @@ void PN532::loop() {
 
 void PN532::process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_uids) {
   for (auto it = this->persistent_tags_.begin(); it != this->persistent_tags_.end(); ) {
-    if (it->missing_count >= 3) {
+    if (it->missing_count >= 5) {
       std::vector<uint8_t> uid_copy = it->uid;
       
       NfcTagUid nfc_uid;
       nfc_uid.assign(uid_copy.begin(), uid_copy.end());
       auto tag = make_unique<nfc::NfcTag>(nfc_uid);
       
-      ESP_LOGD(TAG, "Tag removed (threshold 3): %s", nfc::format_uid(nfc_uid).c_str());
+      ESP_LOGD(TAG, "Tag removed (threshold 5): %s", nfc::format_uid(nfc_uid).c_str());
       for (auto *trigger : this->triggers_ontagremoved_) trigger->process(tag);
       for (auto uit = this->current_uids_.begin(); uit != this->current_uids_.end(); ++uit) {
         if (*uit == uid_copy) { this->current_uids_.erase(uit); break; }
@@ -327,7 +327,7 @@ void PN532::process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_u
       if (it->missing_count > 0) {
         NfcTagUid nfc_uid;
         nfc_uid.assign(it->uid.begin(), it->uid.end());
-        ESP_LOGD(TAG, "Tag %s missing, count %d/3", nfc::format_uid(nfc_uid).c_str(), it->missing_count);
+        ESP_LOGD(TAG, "Tag %s missing, count %d/5", nfc::format_uid(nfc_uid).c_str(), it->missing_count);
       }
       ++it;
     }
@@ -372,8 +372,8 @@ bool PN532::read_ack_() {
   return (data[1] == 0x00 && data[2] == 0x00 && data[3] == 0xFF && data[4] == 0x00 && data[5] == 0xFF && data[6] == 0x00);
 }
 
-void PN532::send_ack_() { this->write_data({0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00}); delay(10); }
-void PN532::send_nack_() { this->write_data({0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00}); delay(10); }
+void PN532::send_ack_() { this->write_data({0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00}); }
+void PN532::send_nack_() { this->write_data({0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00}); }
 
 enum PN532ReadReady PN532::read_ready_(bool block) {
   if (this->rd_ready_ == READY) {
@@ -387,8 +387,8 @@ enum PN532ReadReady PN532::read_ready_(bool block) {
       this->rd_ready_ = READY;
       break;
     }
-    if (millis() - this->rd_start_time_ > 1000) {
-      this->rd_latency_ms_ = 1000;
+    if (millis() - this->rd_start_time_ > 200) {
+      this->rd_latency_ms_ = 200;
       this->rd_ready_ = TIMEOUT;
       break;
     }

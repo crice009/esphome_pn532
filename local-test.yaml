@@ -42,9 +42,9 @@ output:
 pn532_i2c:
   id: hub_i2c
   address: 0x24
-  update_interval: 500ms
+  update_interval: 1s
   health_check_enabled: true
-  health_check_interval: 10s
+  health_check_interval: 30s
   on_tag:
     then:
       - logger.log:
