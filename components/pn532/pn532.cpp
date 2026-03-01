@@ -267,8 +267,11 @@ void PN532::loop() {
     for (const auto &new_uid : new_uids) {
       if (ptag.uid == new_uid) { found = true; break; }
     }
-    if (!found) ptag.missing_count++;
-    else ptag.missing_count = 0;
+    if (!found) {
+      ptag.missing_count++;
+    } else {
+      ptag.missing_count = 0;
+    }
   }
 
   this->process_removed_tags_(new_uids);
