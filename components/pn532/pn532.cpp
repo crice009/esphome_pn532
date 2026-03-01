@@ -312,8 +312,9 @@ void PN532::loop() {
   
   this->process_binary_sensors_();
 
-  if (new_uids.empty() && !this->rf_field_enabled_)
+  if (new_uids.empty() && !this->rf_field_enabled_) {
     this->turn_off_rf_();
+  }
 }
 
 void PN532::process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_uids) {
