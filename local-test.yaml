@@ -3,6 +3,7 @@ esphome:
   on_boot:
     priority: 600
     then:
+      - delay: 5s
       - logger.log: "FULL_TEST_RESTARTING"
 
 esp32:
@@ -46,33 +47,26 @@ pn532_i2c:
   health_check_enabled: false
   on_tag:
     then:
-      - logger.log:
-          format: "I2C Tag detected: %s"
-          args: ['x.c_str()']
+      - logger.log: "I2C Tag detected!"
       - output.turn_on: relay_led
   on_tag_removed:
     then:
-      - logger.log:
-          format: "I2C Tag removed: %s"
-          args: ['x.c_str()']
+      - logger.log: "I2C Tag removed!"
       - output.turn_off: relay_led
 
 pn532_spi:
   id: hub_spi
   cs_pin: GPIO5
-  update_interval: 5s
-  health_check_enabled: true
-  health_check_interval: 30s
+  update_interval: 1s
+  health_check_enabled: false
   on_tag:
     then:
-      - logger.log:
-          format: "SPI Tag detected: %s"
-          args: ['x.c_str()']
+      - logger.log: "SPI Tag detected!"
+      - output.turn_on: relay_led
   on_tag_removed:
     then:
-      - logger.log:
-          format: "SPI Tag removed: %s"
-          args: ['x.c_str()']
+      - logger.log: "SPI Tag removed!"
+      - output.turn_off: relay_led
 
 binary_sensor:
   - platform: pn532
