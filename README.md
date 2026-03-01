@@ -223,6 +223,8 @@ Support for ISO14443B, FeliCa, and Jewel cards is physically possible with the P
 
 ## TODO
 
+- [x] Ensure esphome code conventions are referenced and used throughout component
+- [ ] Fix CI build
 - [x] **SPI Hardware Support:** Confirmed stable initialization and reliable tag reading over SPI.
 - [x] **Multi-Tag Support:** Successfully implemented simultaneous detection and parsing of up to 2 tags per polling cycle.
 - [x] **Tag Persistence:** Implemented robust removal persistence (3-cycle threshold) to eliminate LED/trigger flapping.

@@ -64,6 +64,7 @@ class PN532BinarySensor : public binary_sensor::BinarySensor {
 
 class PN532 : public PollingComponent {
  public:
+  virtual ~PN532() = default;
   void setup() override;
   void set_rf_field_enabled(bool enabled) { this->rf_field_enabled_ = enabled; }
 
