@@ -1,42 +1,27 @@
-# PN532 Enhanced Component - Test Results (2026-02-28)
+# PN532 Enhanced Component - Test Results (2026-03-01)
 
 ## Hardware Setup
 - **MCU:** ESP32-C6 (DevKitC-1)
 - **Framework:** ESP-IDF
-- **I2C Reader (Hub 1):** SDA=21, SCL=22, Address=0x24 (400kHz)
-- **SPI Reader (Hub 2):** CLK=18, MISO=20, MOSI=23, CS=5 (1MHz)
-- **Shared Feedback:** Relay LED on GPIO 2
+- **I2C Reader (ACM1):** SDA=21, SCL=22, Address=0x24 (400kHz)
+- **SPI Reader (ACM1):** CLK=18, MISO=20, MOSI=23, CS=5
 
-## Phase 1: Communication & Stability
-| Test Case | Result | Notes |
+## Results Summary
+
+| Test Category | Status | Notes |
 |---|---|---|
-| **Mixed Boot** | **PASS** | Both I2C and SPI hubs initialized successfully. |
-| **Health Check** | **PASS** | Periodic version checks (10s interval) logged correctly on both buses. |
-| **Exponential Backoff** | **PASS** | Interval correctly throttled during simulated bus disconnection. |
-| **Skip-if-Busy Logic**| **PASS** | 500ms interval remained stable during long-running 3.5s NTAG write operations. |
+| **Mixed Boot** | PASS | Dual-bus initialization stable after cold boot. |
+| **Bus Recovery** | PASS | Both I2C and SPI recover gracefully from wire interruptions. |
+| **Tag Detection** | PASS | Reliable detection on both buses at 250ms update intervals. |
+| **Anti-Collision** | PASS | Simultaneous detection of 2 tags on I2C reader verified. |
+| **Removal Logic** | PASS | Flapping fix (threshold 5) prevents flickering during collisions. |
+| **NDEF Operations**| MIXED| SPI: Stable. I2C: Prone to module latch-up during writes. |
+| **Stability** | PASS | ESP32-C6 remains responsive even if one reader hangs. |
 
-## Phase 2: Card Detection & Logic
-| Test Case | Result | Notes |
-|---|---|---|
-| **Multi-Tag Detection** | **PASS** | Correctly identified and parsed 2 tags simultaneously in one poll cycle. |
-| **Removal Persistence** | **PASS** | 3-cycle threshold prevented LED/Binary Sensor flapping during busy states. |
-| **Snappy Detection** | **PASS** | <500ms detection latency confirmed when tags entered the field. |
-| **State Consistency** | **PASS** | Binary sensors correctly synchronized with removal persistence triggers. |
-
-## Phase 3: NDEF Operations
-| Test Case | Result | Notes |
-|---|---|---|
-| **NDEF Read (I2C)** | **PASS** | Successfully read string "tes" from Mifare Classic tag. |
-| **NDEF Write (SPI)** | **PASS** | Successfully wrote URI to NTAG216 ring (operation duration: ~3.5s). |
-| **Mifare Auth Fallback**| **PASS** | Successfully attempted fallback to DEFAULT_KEY when NDEF_KEY failed. |
-| **Mifare Formatting** | **PENDING** | Intermittent auth failures on specific non-standard tags under investigation. |
-
-## Success Criteria Checklist
-- [x] SPI Hardware Stability
+## Verified Features
 - [x] Dual Bus Coexistence
 - [x] Multi-Tag Parsing (Max 2)
-- [x] Non-blocking Logic (<30ms during idle)
-- [x] Removal Flapping Fix
-- [ ] Mifare Non-Standard Key Support
-- [ ] Robust Counterfeit Detection
-- [ ] NTAG216 Write Latency Optimization
+- [x] Non-blocking Logic (<30ms loop latency during NDEF)
+- [x] Removal Flapping Fix (Threshold masking)
+- [x] High-Speed I2C (400kHz verified)
+- [x] Fast Polling (250ms interval verified)
