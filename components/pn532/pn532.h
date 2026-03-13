@@ -2,6 +2,7 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
+#include "esphome/core/hal.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
 
 #include <cinttypes>
@@ -93,6 +94,7 @@ class PN532 : public PollingComponent {
   void set_health_check_enabled(bool v) { this->health_check_enabled_ = v; }
   void set_health_check_interval(uint32_t ms) { this->health_check_interval_ = ms; }
   void set_user_update_interval(uint32_t ms) { this->user_update_interval_ = ms; }
+  void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
   uint32_t user_update_interval_{1000};
   uint32_t backoff_ms_{0};
 
@@ -113,7 +115,9 @@ class PN532 : public PollingComponent {
   bool health_check_enabled_{true};
   uint32_t health_check_interval_{60000};
   uint32_t last_health_check_{0};
+  GPIOPin *reset_pin_{nullptr};
 
+  void hardware_reset_();
   void process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_uids);
   void process_binary_sensors_();
 

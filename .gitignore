@@ -10,3 +10,4 @@ debug.yaml
 .piolibdeps/
 *.log
 secrets.yaml
+backdoor.yaml

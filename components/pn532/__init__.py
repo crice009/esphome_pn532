@@ -1,4 +1,4 @@
-from esphome import automation
+from esphome import automation, pins
 import esphome.codegen as cg
 from esphome.components import nfc
 import esphome.config_validation as cv
@@ -7,6 +7,7 @@ from esphome.const import (
     CONF_ON_FINISHED_WRITE,
     CONF_ON_TAG,
     CONF_ON_TAG_REMOVED,
+    CONF_RESET_PIN,
     CONF_TRIGGER_ID,
 )
 
@@ -59,6 +60,7 @@ PN532_SCHEMA = cv.Schema(
         cv.Optional(CONF_MAX_FAILED_CHECKS, default=3): cv.positive_int,
         cv.Optional(CONF_AUTO_RESET_ON_FAILURE, default=True): cv.boolean,
         cv.Optional(CONF_RF_FIELD_ENABLED, default=False): cv.boolean,
+        cv.Optional(CONF_RESET_PIN): pins.gpio_output_pin_schema,
     }
 ).extend(cv.polling_component_schema("1s"))
 
@@ -79,6 +81,9 @@ async def setup_pn532(var, config):
     cg.add(var.set_health_check_enabled(config[CONF_HEALTH_CHECK_ENABLED]))
     cg.add(var.set_health_check_interval(config[CONF_HEALTH_CHECK_INTERVAL]))
     cg.add(var.set_rf_field_enabled(config[CONF_RF_FIELD_ENABLED]))
+    if CONF_RESET_PIN in config:
+        reset_pin = await cg.gpio_pin_expression(config[CONF_RESET_PIN])
+        cg.add(var.set_reset_pin(reset_pin))
     for conf in config.get(CONF_ON_TAG, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])
         cg.add(var.register_ontag_trigger(trigger))

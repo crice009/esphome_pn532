@@ -18,6 +18,8 @@ static const char *const TAG = "pn532";
 void PN532::setup() {
   this->current_uids_.clear();
   this->persistent_tags_.clear();
+  this->hardware_reset_();
+
   // Get version data
   if (!this->write_command_({PN532_COMMAND_VERSION_DATA})) {
     ESP_LOGW(TAG, "Error sending version command, trying again");
@@ -362,6 +364,18 @@ void PN532::loop() {
   }
 }
 
+void PN532::hardware_reset_() {
+  if (this->reset_pin_ != nullptr) {
+    this->reset_pin_->setup();
+    this->reset_pin_->digital_write(true);
+    delay(10);
+    this->reset_pin_->digital_write(false);
+    delay(10);
+    this->reset_pin_->digital_write(true);
+    delay(10);
+  }
+}
+
 void PN532::process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_uids) {
   for (auto it = this->persistent_tags_.begin(); it != this->persistent_tags_.end();) {
     if (it->missing_count >= 5) {
@@ -533,6 +547,7 @@ bool PN532::write_tag_(uint8_t tg, std::vector<uint8_t> &uid, nfc::NdefMessage *
 
 bool PN532::reinit_() {
   ESP_LOGW(TAG, "Attempting PN532 re-initialisation...");
+  this->hardware_reset_();
   if (!this->write_command_({PN532_COMMAND_VERSION_DATA})) {
     return false;
   }
