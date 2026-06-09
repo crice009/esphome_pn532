@@ -375,6 +375,9 @@ void PN532::hardware_reset_() {
     this->reset_pin_->digital_write(true);
     delay(10);
   }
+  if (this->irq_pin_ != nullptr) {
+    this->irq_pin_->setup();
+  }
 }
 
 void PN532::process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_uids) {
@@ -468,7 +471,8 @@ enum PN532ReadReady PN532::read_ready_(bool block) {
     this->rd_start_time_ = millis();
   }
   while (true) {
-    if (this->is_read_ready()) {
+    bool hw_ready = (this->irq_pin_ != nullptr) ? !this->irq_pin_->digital_read() : this->is_read_ready();
+    if (hw_ready) {
       this->rd_latency_ms_ = millis() - this->rd_start_time_;
       this->rd_ready_ = READY;
       break;
@@ -588,6 +592,10 @@ bool PN532::reinit_() {
 void PN532::dump_config() {
   ESP_LOGCONFIG(TAG, "PN532:");
   LOG_UPDATE_INTERVAL(this);
+  if (this->irq_pin_ != nullptr)
+    LOG_PIN("  IRQ Pin: ", this->irq_pin_);
+  if (this->reset_pin_ != nullptr)
+    LOG_PIN("  Reset Pin: ", this->reset_pin_);
   for (auto *child : this->binary_sensors_)
     LOG_BINARY_SENSOR("  ", "Tag", child);
 }
