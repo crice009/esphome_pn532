@@ -382,7 +382,7 @@ void PN532::hardware_reset_() {
 
 void PN532::process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_uids) {
   for (auto it = this->persistent_tags_.begin(); it != this->persistent_tags_.end();) {
-    if (it->missing_count >= 1) {
+    if (it->missing_count >= 5) {
       std::vector<uint8_t> uid_copy = it->uid;
 
       NfcTagUid nfc_uid;
@@ -390,7 +390,7 @@ void PN532::process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_u
       auto tag = make_unique<nfc::NfcTag>(nfc_uid);
 
       char uid_buf[nfc::FORMAT_UID_BUFFER_SIZE];
-      ESP_LOGD(TAG, "Tag removed: %s", nfc::format_uid_to(uid_buf, nfc_uid));
+      ESP_LOGD(TAG, "Tag removed (threshold 5): %s", nfc::format_uid_to(uid_buf, nfc_uid));
       for (auto *trigger : this->triggers_ontagremoved_)
         trigger->process(tag);
       for (auto uit = this->current_uids_.begin(); uit != this->current_uids_.end(); ++uit) {
@@ -401,6 +401,12 @@ void PN532::process_removed_tags_(const std::vector<std::vector<uint8_t>> &new_u
       }
       it = this->persistent_tags_.erase(it);
     } else {
+      if (it->missing_count > 0) {
+        NfcTagUid nfc_uid;
+        nfc_uid.assign(it->uid.begin(), it->uid.end());
+        char uid_buf[nfc::FORMAT_UID_BUFFER_SIZE];
+        ESP_LOGD(TAG, "Tag %s missing, count %d/5", nfc::format_uid_to(uid_buf, nfc_uid), it->missing_count);
+      }
       ++it;
     }
   }
